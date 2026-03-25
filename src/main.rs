@@ -9,12 +9,23 @@ fn main() {
 
     word_number = String::from(word_number.strip_suffix("\n").unwrap());
 
-    let number = string_to_number(&*word_number);
+    let number: u8;
+    if word_number.contains('-') {
+        let numbers = word_number.split('-');
+        let mut temp_number = 0;
+        for number in numbers {
+            temp_number += word_to_number(number);
+        }
+        number = temp_number;
+    }
+    else {
+        number = word_to_number(&*word_number);
+    }
 
     println!("You typed in {word_number} which is actually {number}")
 }
 
-fn string_to_number(number_word: &str) -> u8 {
+fn word_to_number(number_word: &str) -> u8 {
     match number_word {
         "one" => 1,
         "two" => 2,
@@ -34,6 +45,6 @@ fn string_to_number(number_word: &str) -> u8 {
         "seventy" => 70,
         "eighty" => 80,
         "ninety" => 90,
-        _ => 255 // placeholder, won't need this in the future
+        _ => panic!("NUMBER NOT VALID")
     }
 }
