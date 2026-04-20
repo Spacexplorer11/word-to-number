@@ -1,4 +1,4 @@
-pub (crate) fn change_word_to_number(word_number: &str) -> u16 {
+pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, &str> {
     let number: u16;
 
     if word_number.contains("and") {
@@ -12,14 +12,20 @@ pub (crate) fn change_word_to_number(word_number: &str) -> u16 {
                 let numbers = number.split_ascii_whitespace();
                 for number in numbers {
                     if !number.eq(" ") {
-                        temp_number *= exchange_word_for_number(number);
+                        temp_number *= match exchange_word_for_number(number) {
+                            Some(num) => num,
+                            None => return Err("400 BAD REQUEST")
+                        };
                     }
                 }
             }
             if number.contains('-') {
                 let numbers = number.split("-");
                 for number in numbers {
-                    temp_number += exchange_word_for_number(number);
+                    temp_number += match exchange_word_for_number(number) {
+                            Some(num) => num,
+                            None => return Err("400 BAD REQUEST")
+                        };
                 }
             }
         }
@@ -29,7 +35,10 @@ pub (crate) fn change_word_to_number(word_number: &str) -> u16 {
         let numbers = word_number.split('-');
         let mut temp_number = 0;
         for number in numbers {
-            temp_number += exchange_word_for_number(number);
+            temp_number += match exchange_word_for_number(number) {
+                            Some(num) => num,
+                            None => return Err("400 BAD REQUEST")
+                        };
         }
         number = temp_number;
     }
@@ -39,49 +48,55 @@ pub (crate) fn change_word_to_number(word_number: &str) -> u16 {
             let numbers = word_number.split_ascii_whitespace();
             for number in numbers {
                 if !number.eq(" ") {
-                    temp_number *= exchange_word_for_number(number);
+                    temp_number *= match exchange_word_for_number(number) {
+                            Some(num) => num,
+                            None => return Err("400 BAD REQUEST")
+                        };
                 }
             }
         }
         number = temp_number
     }
     else {
-        number = exchange_word_for_number(&*word_number);
+        number = match exchange_word_for_number(&*word_number) {
+            Some(num) => num,
+            None => return Err("400 BAD REQUEST")
+        };
     }
 
     println!("Received: {word_number}; Returned: {number}");
-    number
+    Ok(number)
 }
-fn exchange_word_for_number(number_word: &str) -> u16 {
+fn exchange_word_for_number(number_word: &str) -> Option<u16> {
     match number_word {
-        "one" => 1,
-        "two" => 2,
-        "three" => 3,
-        "four" => 4,
-        "five" => 5,
-        "six" => 6,
-        "seven" => 7,
-        "eight" => 8,
-        "nine" => 9,
-        "ten" => 10,
-        "eleven" => 11,
-        "twelve" => 12,
-        "thirteen" => 13,
-        "fourteen" => 14,
-        "fifteen" => 15,
-        "sixteen" => 16,
-        "seventeen" => 17,
-        "eighteen" => 18,
-        "nineteen" => 19,
-        "twenty" => 20,
-        "thirty" => 30,
-        "forty" => 40,
-        "fifty" => 50,
-        "sixty" => 60,
-        "seventy" => 70,
-        "eighty" => 80,
-        "ninety" => 90,
-        "hundred" => 100,
-        _ => panic!("NUMBER ({number_word}) NOT VALID")
+        "one" => Some(1),
+        "two" => Some(2),
+        "three" => Some(3),
+        "four" => Some(4),
+        "five" => Some(5),
+        "six" => Some(6),
+        "seven" => Some(7),
+        "eight" => Some(8),
+        "nine" => Some(9),
+        "ten" => Some(10),
+        "eleven" => Some(11),
+        "twelve" => Some(12),
+        "thirteen" => Some(13),
+        "fourteen" => Some(14),
+        "fifteen" => Some(15),
+        "sixteen" => Some(16),
+        "seventeen" => Some(17),
+        "eighteen" => Some(18),
+        "nineteen" => Some(19),
+        "twenty" => Some(20),
+        "thirty" => Some(30),
+        "forty" => Some(40),
+        "fifty" => Some(50),
+        "sixty" => Some(60),
+        "seventy" => Some(70),
+        "eighty" => Some(80),
+        "ninety" => Some(90),
+        "hundred" => Some(100),
+        _ => None
     }
 }

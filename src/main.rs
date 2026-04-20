@@ -57,7 +57,11 @@ fn handle_connection(mut stream: TcpStream) {
         if line.contains("word") {
             let word_with_quotes: &str = line.split(':').collect::<Vec<_>>()[1];
             let word = word_with_quotes.split("\"").collect::<Vec<_>>()[1];
-            number_from_word = change_word_to_number(word);
+            number_from_word = match change_word_to_number(word) {
+                Ok(num) => num,
+                Err("400 BAD REQUEST") => {stream.write_all("HTTP/1.1 400 BAD REQUEST \r\n\r\n".as_bytes()).unwrap(); return},
+                _ => {stream.write_all("HTTP/1.1 500 INTERNAL SERVER ERROR \r\n\r\n".as_bytes()).unwrap(); return}
+            };
             break;
         }
     }
