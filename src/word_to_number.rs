@@ -1,14 +1,4 @@
-use std::io;
-
-pub (crate) fn change_word_to_number() {
-    let mut word_number = String::new();
-
-    println!("Please enter the number in words which you wish to convert:");
-    io::stdin().read_line(&mut word_number)
-        .expect("Error reading input");
-
-    word_number = String::from(word_number.strip_suffix("\n").unwrap());
-
+pub (crate) fn change_word_to_number(word_number: &str) -> u16 {
     let number: u16;
 
     if word_number.contains("and") {
@@ -59,7 +49,8 @@ pub (crate) fn change_word_to_number() {
         number = exchange_word_for_number(&*word_number);
     }
 
-    println!("You typed in {word_number} which is actually {number}")
+    println!("Received: {word_number}; Returned: {number}");
+    number
 }
 fn exchange_word_for_number(number_word: &str) -> u16 {
     match number_word {
