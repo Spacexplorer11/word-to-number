@@ -1,22 +1,25 @@
 mod word_to_number;
 
+use crate::word_to_number::{WordToNumberError, change_word_to_number};
 use std::{
-  io::{BufReader, prelude::*},
-  net::{TcpListener, TcpStream}
+    io::{BufReader, prelude::*},
+    net::{TcpListener, TcpStream},
 };
-use crate::word_to_number::{change_word_to_number, WordToNumberError};
 
 enum StatusCodes {
-   Ok,
+    Ok,
     BadRequest,
-    InternalServer
+    InternalServer,
 }
 
 fn main() {
-    let listener =  TcpListener::bind("127.0.0.1:7878").unwrap();
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
     for stream in listener.incoming() {
-        let stream = stream.unwrap();
+        let stream = match stream {
+            Ok(stream) => stream,
+            _ => continue,
+        };
 
         handle_connection(stream);
     }
@@ -24,9 +27,10 @@ fn main() {
 
 fn handle_connection(stream: TcpStream) {
     let buf_reader = BufReader::new(&stream);
-    let buf_reader_iter = buf_reader
-        .lines()
-        .map(|result| result.unwrap());
+    let buf_reader_iter = buf_reader.lines().filter_map(|result| match result {
+        Ok(result) => Some(result),
+        _ => Some(String::from("$%$@%SOMETHING WENT WRONG!@$!@$! QUIT@$!$!@")),
+    });
 
     let mut http_request: Vec<_> = Vec::new();
     let mut http_body: Vec<_> = Vec::new();
@@ -36,31 +40,42 @@ fn handle_connection(stream: TcpStream) {
     let mut total_body_bytes: usize = 0;
 
     for line in buf_reader_iter {
+        if line.contains("$%$@%SOMETHING WENT WRONG!@$!@$! QUIT@$!$!@") {
+            send_response(stream, StatusCodes::InternalServer, None);
+            return;
+        }
+        // I know this is silly but making a project without AI leads to this :sob:
         if !line.is_empty() && !body_section {
             if line.contains("Content-Length") {
-                total_body_bytes = line.split(':').collect::<Vec<_>>()[1].trim().parse().unwrap();
+                total_body_bytes = match line.split(':').collect::<Vec<_>>()[1].trim().parse() {
+                    Ok(line) => line,
+                    _ => {
+                        send_response(stream, StatusCodes::InternalServer, None);
+                        return;
+                    }
+                };
 
                 #[cfg(debug_assertions)]
                 println!("Total body bytes = {total_body_bytes}");
-
             }
             http_request.push(line)
-        }
-        else if !body_section {
+        } else if !body_section {
             body_section = true;
-        }
-        else if body_section {
+        } else if body_section {
             body_bytes_read += line.as_bytes().iter().count() + "\r\n".as_bytes().iter().count(); // this is stripped out earlier by .lines() so we have to add it to the count otherwise it never reaches the total
 
             #[cfg(debug_assertions)]
             println!("Total body bytes read = {body_bytes_read}");
 
             http_body.push(line);
-            if body_bytes_read >= total_body_bytes { break; }
+            if body_bytes_read >= total_body_bytes {
+                break;
+            }
         }
     }
 
-    #[cfg(debug_assertions)] {
+    #[cfg(debug_assertions)]
+    {
         println!("Request: {http_request:#?}");
         println!("Body: {http_body:#?}");
     }
@@ -73,8 +88,14 @@ fn handle_connection(stream: TcpStream) {
             let word = word_with_quotes.split("\"").collect::<Vec<_>>()[1];
             numbers_from_words.push(match change_word_to_number(word) {
                 Ok(num) => num,
-                Err(WordToNumberError::BadRequest) => {send_response(stream, StatusCodes::BadRequest, None); return},
-                Err(WordToNumberError::InternalServer) => {send_response(stream, StatusCodes::InternalServer, None); return}
+                Err(WordToNumberError::BadRequest) => {
+                    send_response(stream, StatusCodes::BadRequest, None);
+                    return;
+                }
+                Err(WordToNumberError::InternalServer) => {
+                    send_response(stream, StatusCodes::InternalServer, None);
+                    return;
+                }
             });
         }
     }
@@ -82,11 +103,15 @@ fn handle_connection(stream: TcpStream) {
     send_response(stream, StatusCodes::Ok, Some(numbers_from_words))
 }
 
-fn send_response(mut stream: TcpStream, status_code: StatusCodes, numbers_from_words: Option<Vec<u16>>) {
+fn send_response(
+    mut stream: TcpStream,
+    status_code: StatusCodes,
+    numbers_from_words: Option<Vec<u16>>,
+) {
     let status_line = match status_code {
         StatusCodes::Ok => "HTTP/1.1 200 OK \r\n",
         StatusCodes::BadRequest => "HTTP/1.1 400 BAD REQUEST \r\n",
-        StatusCodes::InternalServer => "HTTP/1.1 500 INTERNAL SERVER ERROR \r\n"
+        StatusCodes::InternalServer => "HTTP/1.1 500 INTERNAL SERVER ERROR \r\n",
     };
     let default_headers = "Connection: close\r\nCache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n\r\n";
 
@@ -94,7 +119,7 @@ fn send_response(mut stream: TcpStream, status_code: StatusCodes, numbers_from_w
         StatusCodes::Ok => {
             let numbers_from_words = match numbers_from_words {
                 Some(num) => num,
-                None => return
+                None => return,
             };
             let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
             if numbers_from_words.len() > 1 {
@@ -106,14 +131,19 @@ fn send_response(mut stream: TcpStream, status_code: StatusCodes, numbers_from_w
                     returned_json.push_str(&*format!(",\n\"number-{i}\": {number}"))
                 }
             }
-            let content_length = format!("{{{returned_json}}}").as_bytes().into_iter().count();
-            format!("{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{{returned_json}}}")
+            let content_length = format!("{{{returned_json}}}")
+                .as_bytes()
+                .into_iter()
+                .count();
+            format!(
+                "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{{returned_json}}}"
+            )
         }
-        _ => format!("{status_line}{default_headers}")
+        _ => format!("{status_line}{default_headers}"),
     };
 
     #[cfg(debug_assertions)]
-     println!("Response: {response}");
+    println!("Response: {response}");
 
     stream.write_all(response.as_bytes()).unwrap();
     stream.flush().unwrap();
