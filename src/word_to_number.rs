@@ -3,9 +3,10 @@ pub (crate) enum WordToNumberError {
     InternalServer
 }
 
-use crate::word_to_number::WordToNumberError::BadRequest;
+use crate::word_to_number::WordToNumberError::{BadRequest, InternalServer};
 
 pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumberError> {
+
     let number: u16;
 
     if word_number.contains("and") {
@@ -13,7 +14,10 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNum
         let mut temp_number = 1;
         for mut number in numbers {
             if number.starts_with(' ') {
-                number = number.strip_prefix(' ').expect("If this gets called something's gone really wrong");
+                number = match number.strip_prefix(' ') {
+                    Some(number) => number,
+                    None => return Err(InternalServer)
+                }
             }
             if number.contains(' ') {
                 let numbers = number.split_ascii_whitespace();
