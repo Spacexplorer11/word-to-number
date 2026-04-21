@@ -66,7 +66,7 @@ fn handle_connection(mut stream: TcpStream) {
         }
     }
 
-    let status_line = "HTTP/1.1 200 OK \r\n\r\n";
+    let status_line = "HTTP/1.1 200 OK \r\n";
     let returned_json = format!("{{\"number\": {}}}", number_from_word);
     let content_length = returned_json.as_bytes().into_iter().count();
 
