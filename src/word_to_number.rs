@@ -39,6 +39,12 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNum
                         };
                 }
             }
+            else if exchange_word_for_number(number).is_some() {
+                temp_number += match exchange_word_for_number(number) {
+                    Some(num) => num,
+                    None => return Err(BadRequest) // This can't be triggered anyway because 3 lines up we check
+                }
+            }
         }
         number = temp_number;
     }
