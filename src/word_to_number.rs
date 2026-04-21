@@ -1,4 +1,11 @@
-pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, &str> {
+pub (crate) enum WordToNumberError {
+    BadRequest,
+    InternalServer
+}
+
+use crate::word_to_number::WordToNumberError::BadRequest;
+
+pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumberError> {
     let number: u16;
 
     if word_number.contains("and") {
@@ -14,7 +21,7 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, &str> {
                     if !number.eq(" ") {
                         temp_number *= match exchange_word_for_number(number) {
                             Some(num) => num,
-                            None => return Err("400 BAD REQUEST")
+                            None => return Err(BadRequest)
                         };
                     }
                 }
@@ -24,7 +31,7 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, &str> {
                 for number in numbers {
                     temp_number += match exchange_word_for_number(number) {
                             Some(num) => num,
-                            None => return Err("400 BAD REQUEST")
+                            None => return Err(BadRequest)
                         };
                 }
             }
@@ -37,7 +44,7 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, &str> {
         for number in numbers {
             temp_number += match exchange_word_for_number(number) {
                             Some(num) => num,
-                            None => return Err("400 BAD REQUEST")
+                            None => return Err(BadRequest)
                         };
         }
         number = temp_number;
@@ -50,7 +57,7 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, &str> {
                 if !number.eq(" ") {
                     temp_number *= match exchange_word_for_number(number) {
                             Some(num) => num,
-                            None => return Err("400 BAD REQUEST")
+                            None => return Err(BadRequest)
                         };
                 }
             }
@@ -60,7 +67,7 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, &str> {
     else {
         number = match exchange_word_for_number(&*word_number) {
             Some(num) => num,
-            None => return Err("400 BAD REQUEST")
+            None => return Err(BadRequest)
         };
     }
 

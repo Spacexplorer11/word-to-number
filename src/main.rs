@@ -4,7 +4,7 @@ use std::{
   io::{BufReader, prelude::*},
   net::{TcpListener, TcpStream}
 };
-use crate::word_to_number::change_word_to_number;
+use crate::word_to_number::{change_word_to_number, WordToNumberError};
 
 fn main() {
     let listener =  TcpListener::bind("127.0.0.1:7878").unwrap();
@@ -59,8 +59,8 @@ fn handle_connection(mut stream: TcpStream) {
             let word = word_with_quotes.split("\"").collect::<Vec<_>>()[1];
             number_from_word = match change_word_to_number(word) {
                 Ok(num) => num,
-                Err("400 BAD REQUEST") => {stream.write_all("HTTP/1.1 400 BAD REQUEST \r\n\r\n".as_bytes()).unwrap(); return},
-                _ => {stream.write_all("HTTP/1.1 500 INTERNAL SERVER ERROR \r\n\r\n".as_bytes()).unwrap(); return}
+                Err(WordToNumberError::BadRequest) => {stream.write_all("HTTP/1.1 400 BAD REQUEST \r\n\r\n".as_bytes()).unwrap(); return},
+                Err(WordToNumberError::InternalServer) => {stream.write_all("HTTP/1.1 500 INTERNAL SERVER ERROR \r\n\r\n".as_bytes()).unwrap(); return}
             };
             break;
         }
