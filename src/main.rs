@@ -6,6 +6,12 @@ use std::{
 };
 use crate::word_to_number::{change_word_to_number, WordToNumberError};
 
+enum StatusCodes {
+   Ok,
+    BadRequest,
+    InternalServer
+}
+
 fn main() {
     let listener =  TcpListener::bind("127.0.0.1:7878").unwrap();
 
@@ -16,7 +22,7 @@ fn main() {
     }
 }
 
-fn handle_connection(mut stream: TcpStream) {
+fn handle_connection(stream: TcpStream) {
     let buf_reader = BufReader::new(&stream);
     let buf_reader_iter = buf_reader
         .lines()
@@ -59,20 +65,38 @@ fn handle_connection(mut stream: TcpStream) {
             let word = word_with_quotes.split("\"").collect::<Vec<_>>()[1];
             number_from_word = match change_word_to_number(word) {
                 Ok(num) => num,
-                Err(WordToNumberError::BadRequest) => {stream.write_all("HTTP/1.1 400 BAD REQUEST \r\n\r\n".as_bytes()).unwrap(); return},
-                Err(WordToNumberError::InternalServer) => {stream.write_all("HTTP/1.1 500 INTERNAL SERVER ERROR \r\n\r\n".as_bytes()).unwrap(); return}
+                Err(WordToNumberError::BadRequest) => {send_response(stream, StatusCodes::BadRequest, None); return},
+                Err(WordToNumberError::InternalServer) => {send_response(stream, StatusCodes::InternalServer, None); return}
             };
             break;
         }
     }
 
-    let status_line = "HTTP/1.1 200 OK \r\n";
-    let returned_json = format!("{{\"number\": {}}}", number_from_word);
-    let content_length = returned_json.as_bytes().into_iter().count();
+    send_response(stream, StatusCodes::Ok, Some(number_from_word))
+}
 
-    let response = format!(
-        "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n\r\n{returned_json}"
-    );
+fn send_response(mut stream: TcpStream, status_code: StatusCodes, number_from_word: Option<u16>) {
+    let status_line = match status_code {
+        StatusCodes::Ok => "HTTP/1.1 200 OK \r\n",
+        StatusCodes::BadRequest => "HTTP/1.1 400 BAD REQUEST \r\n",
+        StatusCodes::InternalServer => "HTTP/1.1 500 INTERNAL SERVER ERROR \r\n"
+    };
+    let default_headers = "Connection: close\r\nCache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n\r\n";
 
+    let response = match status_code {
+        StatusCodes::Ok => {
+            let number_from_word = match number_from_word {
+                Some(num) => num,
+                None => return
+            };
+            let returned_json = format!("{{\"number\": {number_from_word}}}");
+            let content_length = returned_json.as_bytes().into_iter().count();
+            format!("{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{returned_json}")
+        }
+        _ => format!("{status_line}{default_headers}")
+    };
+
+    // println!("Response: {response}");
     stream.write_all(response.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }
