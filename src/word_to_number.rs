@@ -1,13 +1,13 @@
-pub (crate) enum WordToNumberError {
+pub(crate) enum WordToNumberError {
     BadRequest,
-    InternalServer
+    InternalServer,
 }
 
 use crate::word_to_number::WordToNumberError::{BadRequest, InternalServer};
 
-pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumberError> {
-
+pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumberError> {
     let number: u16;
+    let word_number = word_number.to_lowercase();
 
     if word_number.contains("and") {
         let numbers = word_number.split("and");
@@ -16,7 +16,7 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNum
             if number.starts_with(' ') {
                 number = match number.strip_prefix(' ') {
                     Some(number) => number,
-                    None => return Err(InternalServer)
+                    None => return Err(InternalServer),
                 }
             }
             if number.contains(' ') {
@@ -25,7 +25,7 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNum
                     if !number.eq(" ") {
                         temp_number *= match exchange_word_for_number(number) {
                             Some(num) => num,
-                            None => return Err(BadRequest)
+                            None => return Err(BadRequest),
                         };
                     }
                 }
@@ -34,50 +34,46 @@ pub (crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNum
                 let numbers = number.split("-");
                 for number in numbers {
                     temp_number += match exchange_word_for_number(number) {
-                            Some(num) => num,
-                            None => return Err(BadRequest)
-                        };
+                        Some(num) => num,
+                        None => return Err(BadRequest),
+                    };
                 }
-            }
-            else if exchange_word_for_number(number).is_some() {
+            } else if exchange_word_for_number(number).is_some() {
                 temp_number += match exchange_word_for_number(number) {
                     Some(num) => num,
-                    None => return Err(BadRequest) // This can't be triggered anyway because 3 lines up we check
+                    None => return Err(BadRequest), // This can't be triggered anyway because 3 lines up we check
                 }
             }
         }
         number = temp_number;
-    }
-    else if word_number.contains('-') {
+    } else if word_number.contains('-') {
         let numbers = word_number.split('-');
         let mut temp_number = 0;
         for number in numbers {
             temp_number += match exchange_word_for_number(number) {
-                            Some(num) => num,
-                            None => return Err(BadRequest)
-                        };
+                Some(num) => num,
+                None => return Err(BadRequest),
+            };
         }
         number = temp_number;
-    }
-    else if word_number.contains("hundred") {
+    } else if word_number.contains("hundred") {
         let mut temp_number = 1;
         if word_number.contains(' ') {
             let numbers = word_number.split_ascii_whitespace();
             for number in numbers {
                 if !number.eq(" ") {
                     temp_number *= match exchange_word_for_number(number) {
-                            Some(num) => num,
-                            None => return Err(BadRequest)
-                        };
+                        Some(num) => num,
+                        None => return Err(BadRequest),
+                    };
                 }
             }
         }
         number = temp_number
-    }
-    else {
+    } else {
         number = match exchange_word_for_number(&*word_number) {
             Some(num) => num,
-            None => return Err(BadRequest)
+            None => return Err(BadRequest),
         };
     }
 
@@ -114,6 +110,6 @@ fn exchange_word_for_number(number_word: &str) -> Option<u16> {
         "eighty" => Some(80),
         "ninety" => Some(90),
         "hundred" => Some(100),
-        _ => None
+        _ => None,
     }
 }
