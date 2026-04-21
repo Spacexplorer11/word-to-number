@@ -39,7 +39,10 @@ fn handle_connection(stream: TcpStream) {
         if !line.is_empty() && !body_section {
             if line.contains("Content-Length") {
                 total_body_bytes = line.split(':').collect::<Vec<_>>()[1].trim().parse().unwrap();
-                // println!("Total body bytes = {total_body_bytes}");
+
+                #[cfg(debug_assertions)]
+                println!("Total body bytes = {total_body_bytes}");
+
             }
             http_request.push(line)
         }
@@ -48,14 +51,19 @@ fn handle_connection(stream: TcpStream) {
         }
         else if body_section {
             body_bytes_read += line.as_bytes().iter().count() + "\r\n".as_bytes().iter().count(); // this is stripped out earlier by .lines() so we have to add it to the count otherwise it never reaches the total
-            // println!("Total body bytes read = {body_bytes_read}");
+
+            #[cfg(debug_assertions)]
+            println!("Total body bytes read = {body_bytes_read}");
+
             http_body.push(line);
             if body_bytes_read >= total_body_bytes { break; }
         }
     }
 
-    // println!("Request: {http_request:#?}");
-    // println!("Body: {http_body:#?}");
+    #[cfg(debug_assertions)] {
+        println!("Request: {http_request:#?}");
+        println!("Body: {http_body:#?}");
+    }
 
     let mut numbers_from_words: Vec<u16> = Vec::new();
 
@@ -104,7 +112,9 @@ fn send_response(mut stream: TcpStream, status_code: StatusCodes, numbers_from_w
         _ => format!("{status_line}{default_headers}")
     };
 
-    // println!("Response: {response}");
+    #[cfg(debug_assertions)]
+     println!("Response: {response}");
+
     stream.write_all(response.as_bytes()).unwrap();
     stream.flush().unwrap();
 }
