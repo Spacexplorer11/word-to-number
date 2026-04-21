@@ -57,25 +57,24 @@ fn handle_connection(stream: TcpStream) {
     // println!("Request: {http_request:#?}");
     // println!("Body: {http_body:#?}");
 
-    let mut number_from_word: u16 = 0;
+    let mut numbers_from_words: Vec<u16> = Vec::new();
 
     for line in http_body {
         if line.contains("word") {
             let word_with_quotes: &str = line.split(':').collect::<Vec<_>>()[1];
             let word = word_with_quotes.split("\"").collect::<Vec<_>>()[1];
-            number_from_word = match change_word_to_number(word) {
+            numbers_from_words.push(match change_word_to_number(word) {
                 Ok(num) => num,
                 Err(WordToNumberError::BadRequest) => {send_response(stream, StatusCodes::BadRequest, None); return},
                 Err(WordToNumberError::InternalServer) => {send_response(stream, StatusCodes::InternalServer, None); return}
-            };
-            break;
+            });
         }
     }
 
-    send_response(stream, StatusCodes::Ok, Some(number_from_word))
+    send_response(stream, StatusCodes::Ok, Some(numbers_from_words))
 }
 
-fn send_response(mut stream: TcpStream, status_code: StatusCodes, number_from_word: Option<u16>) {
+fn send_response(mut stream: TcpStream, status_code: StatusCodes, numbers_from_words: Option<Vec<u16>>) {
     let status_line = match status_code {
         StatusCodes::Ok => "HTTP/1.1 200 OK \r\n",
         StatusCodes::BadRequest => "HTTP/1.1 400 BAD REQUEST \r\n",
@@ -85,13 +84,22 @@ fn send_response(mut stream: TcpStream, status_code: StatusCodes, number_from_wo
 
     let response = match status_code {
         StatusCodes::Ok => {
-            let number_from_word = match number_from_word {
+            let numbers_from_words = match numbers_from_words {
                 Some(num) => num,
                 None => return
             };
-            let returned_json = format!("{{\"number\": {number_from_word}}}");
-            let content_length = returned_json.as_bytes().into_iter().count();
-            format!("{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{returned_json}")
+            let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
+            if numbers_from_words.len() > 1 {
+                let mut numbers_from_words_iter = numbers_from_words.iter();
+                numbers_from_words_iter.next();
+                let mut i = 0;
+                for number in numbers_from_words_iter {
+                    i += 1;
+                    returned_json.push_str(&*format!(",\n\"number-{i}\": {number}"))
+                }
+            }
+            let content_length = format!("{{{returned_json}}}").as_bytes().into_iter().count();
+            format!("{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{{returned_json}}}")
         }
         _ => format!("{status_line}{default_headers}")
     };
