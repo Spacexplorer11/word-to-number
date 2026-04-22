@@ -129,7 +129,7 @@ fn send_response(
                 if numbers_from_words.len() > 1 {
                     let mut numbers_from_words_iter = numbers_from_words.iter();
                     numbers_from_words_iter.next();
-                    let mut i = 0;
+                    let mut i: u128 = 0;
                     for number in numbers_from_words_iter {
                         i += 1;
                         returned_json.push_str(&*format!(",\n\"number-{i}\": {number}"))
@@ -147,7 +147,9 @@ fn send_response(
                 return;
             }
         }
-        _ => format!("{status_line}{default_headers}"),
+        _ => format!(
+            "{status_line}{default_headers}{{\"error\": \"You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}}"
+        ),
     };
 
     #[cfg(debug_assertions)]
