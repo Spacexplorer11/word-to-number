@@ -1,14 +1,17 @@
 mod word_to_number;
 
 use crate::word_to_number::{WordToNumberError, change_word_to_number};
+use std::time::Duration;
 use std::{
-    io::{BufReader, prelude::*},
+    io::{BufReader, ErrorKind, prelude::*},
     net::{TcpListener, TcpStream},
+    str::from_utf8,
 };
 
 enum StatusCodes {
     Ok,
     BadRequest,
+    Timeout,
     InternalServer,
 }
 
@@ -21,68 +24,68 @@ fn main() {
             _ => continue,
         };
 
+        TcpStream::set_read_timeout(&stream, Some(Duration::from_secs(5))).expect(
+            "Unable to set read timeout for stream. Panicking to avoid resource exploitation",
+        );
+        TcpStream::set_write_timeout(&stream, Some(Duration::from_secs(5))).expect(
+            "Unable to set write timeout for stream. Panicking to avoid resource exploitation",
+        );
+
         handle_connection(stream);
     }
 }
 
 fn handle_connection(stream: TcpStream) {
     let buf_reader = BufReader::new(&stream);
-    let buf_reader_iter = buf_reader.lines().filter_map(|result| match result {
-        Ok(result) => Some(result),
-        _ => Some(String::from("$%$@%SOMETHING WENT WRONG!@$!@$! QUIT@$!$!@")),
-    });
+    let buf_reader_bytes = buf_reader.bytes();
 
-    let mut http_request: Vec<_> = Vec::new();
-    let mut http_body: Vec<_> = Vec::new();
+    let mut http_request = String::new();
+    let mut http_body = String::new();
 
+    let mut crlf: u8 = 0; // Carriage Return Line Feed (new stuff I learned during this project)
     let mut body_section: bool = false;
-    let mut body_bytes_read: usize = 0;
-    let mut total_body_bytes: usize = 0;
 
-    for line in buf_reader_iter {
-        if line.contains("$%$@%SOMETHING WENT WRONG!@$!@$! QUIT@$!$!@") {
-            send_response(stream, StatusCodes::InternalServer, None);
+    for byte in buf_reader_bytes {
+        if let Err(e) = byte {
+            eprintln!("Whoopsies... {e}");
+            match e.kind() {
+                ErrorKind::WouldBlock | ErrorKind::TimedOut => {
+                    send_response(stream, StatusCodes::Timeout, None)
+                }
+                _ => send_response(stream, StatusCodes::InternalServer, None),
+            }
             return;
         }
-        // I know this is silly but making a project without AI leads to this :sob:
-        if !line.is_empty() && !body_section {
-            if line.contains("Content-Length") {
-                total_body_bytes = match line.split(':').collect::<Vec<_>>()[1].trim().parse() {
-                    Ok(line) => line,
-                    _ => {
-                        send_response(stream, StatusCodes::InternalServer, None);
-                        return;
-                    }
-                };
-
-                #[cfg(debug_assertions)]
-                println!("Total body bytes = {total_body_bytes}");
-            }
-            http_request.push(line)
-        } else if !body_section {
+        let byte = byte.expect("If this causes a crash, something really messed up");
+        if byte.eq(&13) || byte.eq(&10) {
+            crlf += 1;
+            http_request.push_str(from_utf8(&[byte]).unwrap());
+        } else if crlf == 4 {
             body_section = true;
-        } else if body_section {
-            body_bytes_read += line.as_bytes().iter().count() + "\r\n".as_bytes().iter().count(); // this is stripped out earlier by .lines() so we have to add it to the count otherwise it never reaches the total
-
-            #[cfg(debug_assertions)]
-            println!("Total body bytes read = {body_bytes_read}");
-
-            http_body.push(line);
-            if body_bytes_read >= total_body_bytes {
-                break;
+            crlf = 0;
+        } else if crlf < 3 && !body_section {
+            crlf = 0;
+            http_request.push_str(from_utf8(&[byte]).unwrap());
+            if http_request.contains("Content-Length: 0") {
+                send_response(stream, StatusCodes::BadRequest, None);
+                return;
             }
+        } else if body_section && !byte.eq(&125) {
+            http_body.push_str(from_utf8(&[byte]).unwrap());
+        } else {
+            break;
         }
     }
 
     #[cfg(debug_assertions)]
     {
-        println!("Request: {http_request:#?}");
-        println!("Body: {http_body:#?}");
+        println!("Request: {http_request}");
+        println!("Body: {http_body}");
     }
 
     let mut numbers_from_words: Vec<u16> = Vec::new();
 
-    for line in http_body {
+    for line in http_body.split(',') {
         if line.contains("word") {
             let word_with_quotes: &str = line.split(':').collect::<Vec<_>>()[1];
             let word = word_with_quotes.split("\"").collect::<Vec<_>>()[1];
@@ -99,7 +102,6 @@ fn handle_connection(stream: TcpStream) {
             });
         }
     }
-
     send_response(stream, StatusCodes::Ok, Some(numbers_from_words))
 }
 
@@ -111,6 +113,7 @@ fn send_response(
     let status_line = match status_code {
         StatusCodes::Ok => "HTTP/1.1 200 OK \r\n",
         StatusCodes::BadRequest => "HTTP/1.1 400 BAD REQUEST \r\n",
+        StatusCodes::Timeout => "HTTP/1.1 408 REQUEST TIMEOUT\r\n",
         StatusCodes::InternalServer => "HTTP/1.1 500 INTERNAL SERVER ERROR \r\n",
     };
     let default_headers = "Connection: close\r\nCache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n\r\n";
@@ -121,23 +124,28 @@ fn send_response(
                 Some(num) => num,
                 None => return,
             };
-            let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
-            if numbers_from_words.len() > 1 {
-                let mut numbers_from_words_iter = numbers_from_words.iter();
-                numbers_from_words_iter.next();
-                let mut i = 0;
-                for number in numbers_from_words_iter {
-                    i += 1;
-                    returned_json.push_str(&*format!(",\n\"number-{i}\": {number}"))
+            if numbers_from_words.len() > 0 {
+                let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
+                if numbers_from_words.len() > 1 {
+                    let mut numbers_from_words_iter = numbers_from_words.iter();
+                    numbers_from_words_iter.next();
+                    let mut i = 0;
+                    for number in numbers_from_words_iter {
+                        i += 1;
+                        returned_json.push_str(&*format!(",\n\"number-{i}\": {number}"))
+                    }
                 }
+                let content_length = format!("{{{returned_json}}}")
+                    .as_bytes()
+                    .into_iter()
+                    .count();
+                format!(
+                    "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{{returned_json}}}"
+                )
+            } else {
+                send_response(stream, StatusCodes::BadRequest, None);
+                return;
             }
-            let content_length = format!("{{{returned_json}}}")
-                .as_bytes()
-                .into_iter()
-                .count();
-            format!(
-                "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{{returned_json}}}"
-            )
         }
         _ => format!("{status_line}{default_headers}"),
     };
