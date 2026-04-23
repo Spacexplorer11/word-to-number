@@ -50,9 +50,9 @@ fn handle_connection(stream: TcpStream) {
             eprintln!("Whoopsies... {e}");
             match e.kind() {
                 ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-                    send_response(stream, StatusCodes::Timeout, None)
+                    send_response(&stream, StatusCodes::Timeout, None)
                 }
-                _ => send_response(stream, StatusCodes::InternalServer, None),
+                _ => send_response(&stream, StatusCodes::InternalServer, None),
             }
             return;
         }
@@ -67,7 +67,7 @@ fn handle_connection(stream: TcpStream) {
             crlf = 0;
             http_request.push_str(from_utf8(&[byte]).unwrap());
             if http_request.contains("Content-Length: 0") {
-                send_response(stream, StatusCodes::BadRequest, None);
+                send_response(&stream, StatusCodes::BadRequest, None);
                 return;
             }
         } else if body_section && !byte.eq(&125) {
@@ -92,21 +92,21 @@ fn handle_connection(stream: TcpStream) {
             numbers_from_words.push(match change_word_to_number(word) {
                 Ok(num) => num,
                 Err(WordToNumberError::BadRequest) => {
-                    send_response(stream, StatusCodes::BadRequest, None);
+                    send_response(&stream, StatusCodes::BadRequest, None);
                     return;
                 }
                 Err(WordToNumberError::InternalServer) => {
-                    send_response(stream, StatusCodes::InternalServer, None);
+                    send_response(&stream, StatusCodes::InternalServer, None);
                     return;
                 }
             });
         }
     }
-    send_response(stream, StatusCodes::Ok, Some(numbers_from_words))
+    send_response(&stream, StatusCodes::Ok, Some(numbers_from_words))
 }
 
 fn send_response(
-    mut stream: TcpStream,
+    mut stream: &TcpStream,
     status_code: StatusCodes,
     numbers_from_words: Option<Vec<u16>>,
 ) {
@@ -155,6 +155,14 @@ fn send_response(
     #[cfg(debug_assertions)]
     println!("Response: {response}");
 
-    stream.write_all(response.as_bytes()).unwrap();
-    stream.flush().unwrap();
+    if let Err(err) = stream.write_all(response.as_bytes()) {
+        #[cfg(debug_assertions)]
+        eprintln!("Failed to write response to client: {err}");
+        return;
+    }
+    if let Err(err) = stream.flush() {
+        #[cfg(debug_assertions)]
+        eprintln!("Failed to flush response to client: {err}");
+        return;
+    }
 }

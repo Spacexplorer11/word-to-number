@@ -12,7 +12,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumb
 
     let utc: DateTime<Utc> = Utc::now();
 
-    if word_number.contains("and") {
+    if word_number.contains(" and ") {
         let numbers = word_number.split("and");
         let mut temp_number = 1;
         for mut number in numbers {
