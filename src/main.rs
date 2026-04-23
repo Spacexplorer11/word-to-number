@@ -116,7 +116,8 @@ fn send_response(
         StatusCodes::Timeout => "HTTP/1.1 408 REQUEST TIMEOUT\r\n",
         StatusCodes::InternalServer => "HTTP/1.1 500 INTERNAL SERVER ERROR \r\n",
     };
-    let default_headers = "Connection: close\r\nCache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n\r\n";
+    let default_headers = "Connection: close\r\n\r\n";
+    let ok_headers = "Cache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n";
 
     let response = match status_code {
         StatusCodes::Ok => {
@@ -140,16 +141,19 @@ fn send_response(
                     .into_iter()
                     .count();
                 format!(
-                    "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{{returned_json}}}"
+                    "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{ok_headers}{default_headers}{{{returned_json}}}"
                 )
             } else {
                 send_response(stream, StatusCodes::BadRequest, None);
                 return;
             }
         }
-        _ => format!(
-            "{status_line}{default_headers}{{\"error\": \"You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}}"
-        ),
+        _ => {
+            let content_length = "{\"error\": \"You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}".len();
+            format!(
+                "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{\"error\": \"You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}}"
+            )
+        }
     };
 
     #[cfg(debug_assertions)]
