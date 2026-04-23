@@ -87,8 +87,22 @@ fn handle_connection(stream: TcpStream) {
 
     for line in http_body.split(',') {
         if line.contains("word") {
-            let word_with_quotes: &str = line.split(':').collect::<Vec<_>>()[1];
-            let word = word_with_quotes.split("\"").collect::<Vec<_>>()[1];
+            let parts = line.split(':').collect::<Vec<_>>();
+            let word_with_quotes = match parts.get(1) {
+                Some(word) => word,
+                None => {
+                    send_response(&stream, StatusCodes::BadRequest, None);
+                    return;
+                }
+            };
+            let parts = word_with_quotes.split("\"").collect::<Vec<_>>();
+            let word = match parts.get(1) {
+                Some(word) => word,
+                None => {
+                    send_response(&stream, StatusCodes::BadRequest, None);
+                    return;
+                }
+            };
             numbers_from_words.push(match change_word_to_number(word) {
                 Ok(num) => num,
                 Err(WordToNumberError::BadRequest) => {

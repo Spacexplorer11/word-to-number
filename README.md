@@ -56,7 +56,7 @@ For multiple numbers the response will always be like this:
 "number-2": 67
 }
 ```  
-The numbers' index will go up to the max limit of 2^128 - 1.  
+The numbers' index will go up to a reasonable amount but does depend on how the server is feeling at that moment.
 
 ### Errors
 The only 3 error codes you can receive are:
