@@ -1,5 +1,5 @@
 # Word to number
-![](https://hackatime.hackclub.com/api/v1/badge/U08D22QNUVD/Spacexplorer11/word-to-number)  
+![Hackatime badge](https://hackatime.hackclub.com/api/v1/badge/U08D22QNUVD/Spacexplorer11/word-to-number)  
 This is my first ever API!! I'm very proud of myself for making it by myself, without AI-Assistance at all!!
 The [Rust Book tutorial](https://doc.rust-lang.org/book/ch21-00-final-project-a-web-server.html) on this was very, very useful!
 
