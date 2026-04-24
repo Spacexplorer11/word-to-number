@@ -53,11 +53,12 @@ paths:
                 properties:
                   error:
                     type: string
+                    enum:
+                      - 400 Bad Request
                   message:
                     type: string
-              example:
-                error: "400 Bad Request"
-                message: "You might have a typo? Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                    enum:
+                      - "You might have a typo? Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
         '408':
           description: Timeout
           content:
@@ -67,11 +68,12 @@ paths:
                 properties:
                   error:
                     type: string
+                    enum:
+                      - 408 Timeout
                   message:
                     type: string
-              example:
-                error: "408 Timeout"
-                message: "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                    enum: 
+                      - "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
         '411':
           description: Length Required
           content:
@@ -81,11 +83,12 @@ paths:
                 properties:
                   error:
                     type: string
+                    enum: 
+                      - 411 Length Required
                   message:
                     type: string
-              example:
-                error: "411 Length Required"
-                message: "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                    enum: 
+                      - "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
         '500':
           description: Internal Server Error
           content:
@@ -95,8 +98,9 @@ paths:
                 properties:
                   error:
                     type: string
+                    enum:
+                      - 500 Internal Server Error
                   message:
                     type: string
-              example:
-                error: "500 Internal Server Error"
-                message: "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                    enum: 
+                      - "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
