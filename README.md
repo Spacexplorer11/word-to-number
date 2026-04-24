@@ -11,7 +11,8 @@ This is an API where you send string numbers and receive integers. For example, 
 
 ## Usage
 ### Request
-You must send a POST request to the server at https://word-to-number.akaalroop.com.  
+You must send a POST request to the server at https://word-to-number.akaalroop.com/.  
+The request has to be like number (hundred) (and number). If you do number hundred number, you will get unexpected results. You must follow the rules of number (hundred) **and** (number). You may not just submit "hundred". Submitting any integer below 999 in English following that format should yield predictable results. You may not use articles like "a" (yet).
 The body of the request must be JSON formatted like this:  
 ```json
 {
