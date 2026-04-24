@@ -174,12 +174,10 @@ fn send_response(
     println!("Response: {response}");
 
     if let Err(err) = stream.write_all(response.as_bytes()) {
-        #[cfg(debug_assertions)]
         eprintln!("Failed to write response to client: {err}");
         return;
     }
     if let Err(err) = stream.flush() {
-        #[cfg(debug_assertions)]
         eprintln!("Failed to flush response to client: {err}");
         return;
     }
