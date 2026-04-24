@@ -36,12 +36,11 @@ fn main() {
 }
 
 fn handle_connection(stream: TcpStream) {
-    let buf_reader = BufReader::new(&stream);
-    let buf_reader_bytes = buf_reader.bytes();
-
     let http_body: String;
 
     {
+        let buf_reader = BufReader::new(&stream);
+        let buf_reader_bytes = buf_reader.bytes();
         let mut http_headers_bytes: Vec<u8> = Vec::new();
         let mut http_headers = String::new();
         let mut http_body_bytes: Vec<u8> = Vec::new();
