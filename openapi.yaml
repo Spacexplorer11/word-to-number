@@ -98,5 +98,5 @@ paths:
                   message:
                     type: string
               example:
-                error: "500 Internal Server Again"
+                error: "500 Internal Server Error"
                 message: "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."

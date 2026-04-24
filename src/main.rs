@@ -183,11 +183,11 @@ fn send_response(
     numbers_from_words: Option<Vec<u16>>,
 ) {
     let status_line = match status_code {
-        StatusCodes::Ok => "HTTP/1.1 200 OK \r\n",
-        StatusCodes::BadRequest => "HTTP/1.1 400 Bad Request \r\n",
+        StatusCodes::Ok => "HTTP/1.1 200 OK\r\n",
+        StatusCodes::BadRequest => "HTTP/1.1 400 Bad Request\r\n",
         StatusCodes::Timeout => "HTTP/1.1 408 Request Timeout\r\n",
         StatusCodes::LengthRequired => "HTTP/1.1 411 Length Required\r\n",
-        StatusCodes::InternalServer => "HTTP/1.1 500 Internal Server Error \r\n",
+        StatusCodes::InternalServer => "HTTP/1.1 500 Internal Server Error\r\n",
     };
     let default_headers = "Connection: close\r\n\r\n";
     let ok_headers = "Cache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n";
@@ -240,7 +240,7 @@ fn send_response(
             )
         }
         StatusCodes::InternalServer => {
-            let error_message = "{\"error\": \"500 Internal Server Again\", \"message\":\"Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
+            let error_message = "{\"error\": \"500 Internal Server Error\", \"message\":\"Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
             format!(
                 "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
                 error_message.len()
