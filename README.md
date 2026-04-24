@@ -1,5 +1,5 @@
 # Word to number
-![](https://hackatime.hackclub.com/api/v1/badge/U08D22QNUVD/Spacexplorer11/word-to-number)  
+![Hackatime badge](https://hackatime.hackclub.com/api/v1/badge/U08D22QNUVD/Spacexplorer11/word-to-number)  
 This is my first ever API!! I'm very proud of myself for making it by myself, without AI-Assistance at all!!
 The [Rust Book tutorial](https://doc.rust-lang.org/book/ch21-00-final-project-a-web-server.html) on this was very, very useful!
 
@@ -7,7 +7,7 @@ The [Rust Book tutorial](https://doc.rust-lang.org/book/ch21-00-final-project-a-
 ## What is it?
 This is an API where you send string numbers and receive integers. For example, you can exchange "sixty-seven" for 67.  
 >[!Important]
-> This API only supports numbers up to 999 at the moment. This will change within the next 7 days.
+> This API only consistently supports numbers up to 999 at the moment. Some numbers past 999 may work but nothing is guaranteed. This will change within the next 7 days.
 
 ## Usage
 ### Request
