@@ -189,7 +189,7 @@ fn send_response(
             let numbers_from_words = numbers_from_words.expect(
                 "You messed up and didn't pass the number from words array but wanted to send OK",
             );
-            if numbers_from_words.len() > 0 {
+            if !numbers_from_words.is_empty() {
                 let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
                 if numbers_from_words.len() > 1 {
                     let mut numbers_from_words_iter = numbers_from_words.iter();
@@ -200,8 +200,9 @@ fn send_response(
                         returned_json.push_str(&*format!(",\n\"number-{i}\": {number}"))
                     }
                 }
+                returned_json = format!("{{{returned_json}}}");
                 format!(
-                    "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{ok_headers}{default_headers}{{{returned_json}}}",
+                    "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{ok_headers}{default_headers}{returned_json}",
                     returned_json.len()
                 )
             } else {
