@@ -11,6 +11,7 @@ enum StatusCodes {
     Ok,
     BadRequest,
     Timeout,
+    LengthRequired,
     InternalServer,
 }
 
@@ -38,47 +39,86 @@ fn handle_connection(stream: TcpStream) {
     let buf_reader = BufReader::new(&stream);
     let buf_reader_bytes = buf_reader.bytes();
 
-    let mut http_request_bytes: Vec<u8> = Vec::new();
-    let mut http_request = String::new();
-    let mut http_body_bytes: Vec<u8> = Vec::new();
-    let mut http_body = String::new();
+    let http_body: String;
 
-    let mut crlf: u8 = 0; // Carriage Return Line Feed (new stuff I learned during this project)
-    let mut body_section: bool = false;
-
-    for byte in buf_reader_bytes {
-        if let Err(e) = byte {
-            eprintln!("Whoopsies... {e}");
-            match e.kind() {
-                ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-                    send_response(&stream, StatusCodes::Timeout, None)
+    {
+        let mut http_headers_bytes: Vec<u8> = Vec::new();
+        let mut http_headers = String::new();
+        let mut http_body_bytes: Vec<u8> = Vec::new();
+        let mut crlf: u8 = 0; // Carriage Return Line Feed (new stuff I learned during this project)
+        let mut body_section: bool = false;
+        let mut headers;
+        let mut content_length = 0;
+        for byte in buf_reader_bytes {
+            if let Err(e) = byte {
+                eprintln!("Whoopsies... {e}");
+                match e.kind() {
+                    ErrorKind::WouldBlock | ErrorKind::TimedOut => {
+                        send_response(&stream, StatusCodes::Timeout, None)
+                    }
+                    _ => send_response(&stream, StatusCodes::InternalServer, None),
                 }
-                _ => send_response(&stream, StatusCodes::InternalServer, None),
-            }
-            return;
-        }
-        let byte = byte.expect("If this causes a crash, something really messed up");
-        if byte.eq(&13) || byte.eq(&10) {
-            crlf += 1;
-            http_request_bytes.push(byte);
-        } else if crlf == 4 {
-            body_section = true;
-            crlf = 0;
-        } else if crlf < 3 && !body_section {
-            crlf = 0;
-            http_request_bytes.push(byte);
-        } else if body_section && !byte.eq(&125) {
-            http_body_bytes.push(byte);
-        } else {
-            break;
-        }
-        http_request = match String::from_utf8_lossy(&*http_request_bytes).parse() {
-            Ok(string) => string,
-            _ => {
-                send_response(&stream, StatusCodes::BadRequest, None);
                 return;
             }
-        };
+            let byte = byte.expect("If this causes a crash, something really messed up");
+            if (byte.eq(&13) || byte.eq(&10)) && !body_section {
+                crlf += 1;
+                http_headers_bytes.push(byte);
+            } else if crlf >= 4 && !body_section {
+                body_section = true;
+                crlf = 0;
+                http_headers = match String::from_utf8_lossy(&*http_headers_bytes).parse() {
+                    Ok(string) => string,
+                    _ => {
+                        send_response(&stream, StatusCodes::BadRequest, None);
+                        return;
+                    }
+                };
+                headers = http_headers.split("\r\n").collect::<Vec<_>>();
+                for header in headers {
+                    if header.contains("Content-Length:") {
+                        let content_length_part =
+                            header.split("Content-Length:").collect::<Vec<_>>();
+                        match content_length_part.get(1) {
+                            Some(content_length_str) => {
+                                match content_length_str.trim().parse::<usize>() {
+                                    Ok(num) => {
+                                        if num == 0 {
+                                            send_response(&stream, StatusCodes::BadRequest, None);
+                                            return;
+                                        } else {
+                                            content_length = num;
+                                        }
+                                    }
+                                    _ => {
+                                        send_response(&stream, StatusCodes::LengthRequired, None);
+                                        return;
+                                    }
+                                }
+                            }
+                            _ => {
+                                send_response(&stream, StatusCodes::LengthRequired, None);
+                                return;
+                            }
+                        }
+                    }
+                }
+                http_body_bytes.push(byte);
+                content_length -= 1;
+                if content_length <= 0 {
+                    break;
+                }
+            } else if crlf < 3 && !body_section {
+                crlf = 0;
+                http_headers_bytes.push(byte);
+            } else if body_section {
+                http_body_bytes.push(byte);
+                content_length -= 1;
+                if content_length <= 0 {
+                    break;
+                }
+            }
+        }
         http_body = match String::from_utf8_lossy(&*http_body_bytes).parse() {
             Ok(string) => string,
             _ => {
@@ -86,12 +126,11 @@ fn handle_connection(stream: TcpStream) {
                 return;
             }
         };
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        println!("Request: {http_request}");
-        println!("Body: {http_body}");
+        #[cfg(debug_assertions)]
+        {
+            println!("Request: {http_headers}");
+            println!("Body: {http_body}");
+        }
     }
 
     let mut numbers_from_words: Vec<u16> = Vec::new();
@@ -137,9 +176,10 @@ fn send_response(
 ) {
     let status_line = match status_code {
         StatusCodes::Ok => "HTTP/1.1 200 OK \r\n",
-        StatusCodes::BadRequest => "HTTP/1.1 400 BAD REQUEST \r\n",
-        StatusCodes::Timeout => "HTTP/1.1 408 REQUEST TIMEOUT\r\n",
-        StatusCodes::InternalServer => "HTTP/1.1 500 INTERNAL SERVER ERROR \r\n",
+        StatusCodes::BadRequest => "HTTP/1.1 400 Bad Request \r\n",
+        StatusCodes::Timeout => "HTTP/1.1 408 Request Timeout\r\n",
+        StatusCodes::LengthRequired => "HTTP/1.1 411 Length Required\r\n",
+        StatusCodes::InternalServer => "HTTP/1.1 500 Internal Server Error \r\n",
     };
     let default_headers = "Connection: close\r\n\r\n";
     let ok_headers = "Cache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n";
@@ -173,10 +213,32 @@ fn send_response(
                 return;
             }
         }
-        _ => {
-            let content_length = "{\"error\": \"You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}".len();
+        StatusCodes::BadRequest => {
+            let error_message = "{\"error\": \"400 Bad Request\", \"message\":\"You might have a typo? Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
             format!(
-                "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{default_headers}{{\"error\": \"You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}}"
+                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
+                error_message.len()
+            )
+        }
+        StatusCodes::Timeout => {
+            let error_message = "{\"error\": \"408 Timeout\", \"message\":\"Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
+            format!(
+                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
+                error_message.len()
+            )
+        }
+        StatusCodes::LengthRequired => {
+            let error_message = "{\"error\": \"411 Length Required\", \"message\":\"Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
+            format!(
+                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
+                error_message.len()
+            )
+        }
+        StatusCodes::InternalServer => {
+            let error_message = "{\"error\": \"500 Internal Server Again\", \"message\":\"Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
+            format!(
+                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
+                error_message.len()
             )
         }
     };

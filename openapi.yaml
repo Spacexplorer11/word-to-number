@@ -45,35 +45,58 @@ paths:
                     type: integer
                     example: 193
         '400':
-          description: Invalid word supplied
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    enum:
-                    - "You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+            description: Bad Request
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                    message:
+                      type: string
+                example:
+                  error: "400 Bad Request"
+                  message: "You might have a typo? Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
         '408':
-          description: Request timed out
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    enum:
-                    - "You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+            description: Timeout
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                    message:
+                      type: string
+                example:
+                  error: "408 Timeout"
+                  message: "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+        '411':
+            description: Length Required
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                    message:
+                      type: string
+                example:
+                  error: "411 Length Required"
+                  message: "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    enum:
-                    - "You received an error. Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+            description: Internal Server Error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                    message:
+                      type: string
+                example:
+                  error: "500 Internal Server Again"
+                  message: "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."

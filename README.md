@@ -59,9 +59,10 @@ For multiple numbers the response will always be like this:
 The numbers' index will go up to a reasonable amount but does depend on how the server is feeling at that moment.
 
 ### Errors
-The only 3 error codes you can receive are:
-- `400` - Bad request. Make sure your request is formatted to the requirements in request section. This will also be returned if the request has a typo or if the number is unsupported. **Currently only numbers up to 999 are supported. This will change soon**  
+The only 4 error codes you can receive are:
+- `400` - Bad request. Make sure your request is formatted to the requirements in request section. This will also be returned if the request has a typo or if the number is unsupported. **Currently only numbers up to 999 are supported. This will change soon**
 - `408` - Request Timed Out. Your request timed out. This may be due to a variety of reasons. One reason may be no ending `}`. The code requires that to understand when the request has finished.  
+- `411` - Length Required. You didn't provide a `Content-Length` header and without that my API rejects your request.
 - `500` - Internal Server Error. This is usually out of your control, but if you receive these a lot please email [akaal@akaalroop.com](mailto:akaal@akaalroop.com) and let me know!
 
 ## Self-hosting
