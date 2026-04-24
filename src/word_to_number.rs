@@ -4,13 +4,11 @@ pub(crate) enum WordToNumberError {
 }
 
 use crate::word_to_number::WordToNumberError::{BadRequest, InternalServer};
-use chrono::{DateTime, Utc};
+use time::UtcDateTime;
 
 pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumberError> {
     let number: u16;
     let word_number = word_number.to_lowercase();
-
-    let utc: DateTime<Utc> = Utc::now();
 
     if word_number.contains(" and ") {
         let numbers = word_number.split("and");
@@ -74,7 +72,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumb
         }
         number = temp_number
     } else {
-        number = match exchange_word_for_number(&*word_number) {
+        number = match exchange_word_for_number(&word_number) {
             Some(num) => num,
             None => return Err(BadRequest),
         };
@@ -82,7 +80,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumb
 
     println!(
         "[{}] Received: {word_number}; Returned: {number}",
-        utc.to_string()
+        UtcDateTime::now()
     );
     Ok(number)
 }
