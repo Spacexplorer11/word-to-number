@@ -104,9 +104,17 @@ fn handle_connection(stream: TcpStream) {
                     }
                 }
                 http_body_bytes.push(byte);
-                content_length -= 1;
-                if content_length <= 0 {
-                    break;
+                if content_length >= 2 {
+                    content_length -= 1;
+                } else {
+                    if content_length <= 0 {
+                        send_response(&stream, StatusCodes::LengthRequired, None);
+                        return;
+                    } else {
+                        // it's impossible to fit the JSON in one byte so yeah...
+                        send_response(&stream, StatusCodes::BadRequest, None);
+                        return;
+                    }
                 }
             } else if crlf < 3 && !body_section {
                 crlf = 0;
