@@ -5,7 +5,6 @@ use std::time::Duration;
 use std::{
     io::{BufReader, ErrorKind, prelude::*},
     net::{TcpListener, TcpStream},
-    str::from_utf8,
 };
 
 enum StatusCodes {
@@ -39,7 +38,9 @@ fn handle_connection(stream: TcpStream) {
     let buf_reader = BufReader::new(&stream);
     let buf_reader_bytes = buf_reader.bytes();
 
+    let mut http_request_bytes: Vec<u8> = Vec::new();
     let mut http_request = String::new();
+    let mut http_body_bytes: Vec<u8> = Vec::new();
     let mut http_body = String::new();
 
     let mut crlf: u8 = 0; // Carriage Return Line Feed (new stuff I learned during this project)
@@ -59,22 +60,32 @@ fn handle_connection(stream: TcpStream) {
         let byte = byte.expect("If this causes a crash, something really messed up");
         if byte.eq(&13) || byte.eq(&10) {
             crlf += 1;
-            http_request.push_str(from_utf8(&[byte]).unwrap());
+            http_request_bytes.push(byte);
         } else if crlf == 4 {
             body_section = true;
             crlf = 0;
         } else if crlf < 3 && !body_section {
             crlf = 0;
-            http_request.push_str(from_utf8(&[byte]).unwrap());
-            if http_request.contains("Content-Length: 0") {
-                send_response(&stream, StatusCodes::BadRequest, None);
-                return;
-            }
+            http_request_bytes.push(byte);
         } else if body_section && !byte.eq(&125) {
-            http_body.push_str(from_utf8(&[byte]).unwrap());
+            http_body_bytes.push(byte);
         } else {
             break;
         }
+        http_request = match String::from_utf8_lossy(&*http_request_bytes).parse() {
+            Ok(string) => string,
+            _ => {
+                send_response(&stream, StatusCodes::BadRequest, None);
+                return;
+            }
+        };
+        http_body = match String::from_utf8_lossy(&*http_body_bytes).parse() {
+            Ok(string) => string,
+            _ => {
+                send_response(&stream, StatusCodes::BadRequest, None);
+                return;
+            }
+        };
     }
 
     #[cfg(debug_assertions)]
