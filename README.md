@@ -12,7 +12,7 @@ This is an API where you send string numbers and receive integers. For example, 
 ## Usage
 ### Request
 You must send a POST request to the server at https://word-to-number.akaalroop.com/.  
-The request has to be like number (hundred) (and number). If you do number hundred number, you will get unexpected results. You must follow the rules of number (hundred) **and** (number). You may not just submit "hundred". Submitting any integer below 999 in English following that format should yield predictable results. You may not use articles like "a" (yet).
+The request has to be like number (hundred) (and number). If you do number hundred number, you will get unexpected results. You must follow the rules of number (hundred) **and** (number). You may not just submit "hundred". Submitting any integer below 999 in English following that format will yield predictable results. You may not use articles like "a" (yet).
 The body of the request must be JSON formatted like this:  
 ```json
 {
@@ -69,4 +69,11 @@ The only 4 error codes you can receive are:
 ## Self-hosting
 1. Clone the repo
 2. Run `cargo run`.
-3. Send requests to http://127.0.0.1:7878/.
+3. Send requests to `http://127.0.0.1:7878/`.
+
+## Have you tested it?
+Yes I have tested every, single, number up to 999 and they all work. You can test it yourself by downloading [test.json](/test.json) and running:
+```bash
+curl -s -X POST https://word-to-number.akaalroop.com/ -H "Content-Type: application/json" -d "$(cat test.json)"
+```
+**Warning:** Big requests like that may time out. (Command may not work on all systems)
