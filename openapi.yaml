@@ -1,0 +1,106 @@
+openapi: 3.0.0
+info:
+  title: Word to Number API
+  version: 0.1.0
+  description: Converts English words to numbers. Only supports integers up to 999 at the moment (will change very soon).
+
+servers:
+  - url: https://word-to-number.akaalroop.com
+
+paths:
+  /:
+    post:
+      summary: Convert word(s) to number(s)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                word:
+                  type: string
+                  example: thirty
+                word-1:
+                  type: string
+                  example: ninety-nine
+                word-2:
+                  type: string
+                  example: one hundred and ninety-three
+      responses:
+        '200':
+          description: Successful conversion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  number:
+                    type: integer
+                    example: 30
+                  number-1:
+                    type: integer
+                    example: 99
+                  number-2:
+                    type: integer
+                    example: 193
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - 400 Bad Request
+                  message:
+                    type: string
+                    enum:
+                      - "You might have a typo? Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+        '408':
+          description: Timeout
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - 408 Timeout
+                  message:
+                    type: string
+                    enum: 
+                      - "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+        '411':
+          description: Length Required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum: 
+                      - 411 Length Required
+                  message:
+                    type: string
+                    enum: 
+                      - "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - 500 Internal Server Error
+                  message:
+                    type: string
+                    enum: 
+                      - "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
