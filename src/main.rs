@@ -74,6 +74,10 @@ fn handle_connection(stream: TcpStream) {
                         return;
                     }
                 };
+                if !http_headers.contains("Content-Length:") {
+                    send_response(&stream, StatusCodes::LengthRequired, None);
+                    return;
+                }
                 headers = http_headers.split("\r\n").collect::<Vec<_>>();
                 for header in headers {
                     if header.contains("Content-Length:") {
@@ -107,7 +111,7 @@ fn handle_connection(stream: TcpStream) {
                 if content_length >= 2 {
                     content_length -= 1;
                 } else {
-                    if content_length <= 0 {
+                    if content_length == 0 {
                         send_response(&stream, StatusCodes::LengthRequired, None);
                         return;
                     } else {
@@ -122,7 +126,7 @@ fn handle_connection(stream: TcpStream) {
             } else if body_section {
                 http_body_bytes.push(byte);
                 content_length -= 1;
-                if content_length <= 0 {
+                if content_length == 0 {
                     break;
                 }
             }
