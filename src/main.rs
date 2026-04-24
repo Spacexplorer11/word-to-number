@@ -186,10 +186,9 @@ fn send_response(
 
     let response = match status_code {
         StatusCodes::Ok => {
-            let numbers_from_words = match numbers_from_words {
-                Some(num) => num,
-                None => return,
-            };
+            let numbers_from_words = numbers_from_words.expect(
+                "You messed up and didn't pass the number from words array but wanted to send OK",
+            );
             if numbers_from_words.len() > 0 {
                 let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
                 if numbers_from_words.len() > 1 {
@@ -201,12 +200,9 @@ fn send_response(
                         returned_json.push_str(&*format!(",\n\"number-{i}\": {number}"))
                     }
                 }
-                let content_length = format!("{{{returned_json}}}")
-                    .as_bytes()
-                    .into_iter()
-                    .count();
                 format!(
-                    "{status_line}Content-Type: application/json\r\nContent-Length: {content_length}\r\n{ok_headers}{default_headers}{{{returned_json}}}"
+                    "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{ok_headers}{default_headers}{{{returned_json}}}",
+                    returned_json.len()
                 )
             } else {
                 send_response(stream, StatusCodes::BadRequest, None);
