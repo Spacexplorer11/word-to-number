@@ -66,22 +66,23 @@ fn handle_connection(stream: TcpStream) {
                 if crlf >= 4 {
                     body_section = true;
                     crlf = 0;
-                    http_headers = match String::from_utf8_lossy(&*http_headers_bytes).parse() {
-                        Ok(string) => string,
-                        _ => {
-                            send_response(&stream, StatusCodes::BadRequest, None);
-                            return;
-                        }
-                    };
-                    if !http_headers.contains("Content-Length:") {
+                    http_headers =
+                        match String::from_utf8_lossy(&*http_headers_bytes).parse::<String>() {
+                            Ok(string) => string.to_lowercase(),
+                            _ => {
+                                send_response(&stream, StatusCodes::BadRequest, None);
+                                return;
+                            }
+                        };
+                    if !http_headers.contains("content-length:") {
                         send_response(&stream, StatusCodes::LengthRequired, None);
                         return;
                     }
                     headers = http_headers.split("\r\n").collect::<Vec<_>>();
                     for header in headers {
-                        if header.contains("Content-Length:") {
+                        if header.contains("content-length:") {
                             let content_length_part =
-                                header.split("Content-Length:").collect::<Vec<_>>();
+                                header.split("content-length:").collect::<Vec<_>>();
                             match content_length_part.get(1) {
                                 Some(content_length_str) => {
                                     match content_length_str.trim().parse::<usize>() {
