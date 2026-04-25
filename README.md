@@ -3,6 +3,7 @@
 This is my first ever API!! I'm very proud of myself for making it by myself, without AI-Assistance at all!!
 The [Rust Book tutorial](https://doc.rust-lang.org/book/ch21-00-final-project-a-web-server.html) on this was very, very useful!
 
+Check out my Scalar page: https://registry.scalar.com/@akaalroop/apis/word-to-number-api@latest
 
 ## What is it?
 This is an API where you send string numbers and receive integers. For example, you can exchange "sixty-seven" for 67.  
