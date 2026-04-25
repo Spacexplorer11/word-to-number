@@ -60,8 +60,8 @@ For multiple numbers the response will always be like this:
 The numbers' index will go up to a reasonable amount but does depend on how the server is feeling at that moment.
 
 ### Errors
-The only 4 error codes you can receive are:
-- `400` - Bad request. Make sure your request is formatted to the requirements in request section. This will also be returned if the request has a typo, if the number is unsupported or if your `Content-Length` header is below 3. **Currently only numbers up to 999 are supported. This will change soon**
+The only 5 error codes you can receive are:
+- `400` - Bad request. Make sure your request is formatted to the requirements in request section. This will also be returned if the request has a typo, if the number is unsupported or if your `Content-Length` header is 0 or malformed. **Currently only numbers up to 999 are supported. This will change soon**
 - `408` - Request Timed Out. Your request timed out. This may be due to a variety of reasons. For example, you may have sent fewer bytes than your Content-Length header said or just stopped sending bytes for more than 5 seconds.
 - `411` - Length Required. You didn't provide a `Content-Length` header and without that my API rejects your request. You may also get this if you send no body which isn't acceptable.
 - `429` - Too Many Requests. This may be returned by my Cloudflare Tunnel since I have a ratelimit of 15 requests / 10 seconds to protect my server.

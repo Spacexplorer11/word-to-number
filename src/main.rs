@@ -98,11 +98,7 @@ fn handle_connection(stream: TcpStream) {
                                             }
                                         }
                                         _ => {
-                                            send_response(
-                                                &stream,
-                                                StatusCodes::LengthRequired,
-                                                None,
-                                            );
+                                            send_response(&stream, StatusCodes::BadRequest, None);
                                             return;
                                         }
                                     }
@@ -112,19 +108,6 @@ fn handle_connection(stream: TcpStream) {
                                     return;
                                 }
                             }
-                        }
-                    }
-                    http_body_bytes.push(byte);
-                    if content_length >= 2 {
-                        content_length -= 1;
-                    } else {
-                        if content_length == 0 {
-                            send_response(&stream, StatusCodes::LengthRequired, None);
-                            return;
-                        } else {
-                            // it's impossible to fit the JSON in one byte so yeah...
-                            send_response(&stream, StatusCodes::BadRequest, None);
-                            return;
                         }
                     }
                 }
