@@ -63,60 +63,53 @@ fn handle_connection(stream: TcpStream) {
             if (byte.eq(&13) || byte.eq(&10)) && !body_section {
                 crlf += 1;
                 http_headers_bytes.push(byte);
-            } else if crlf >= 4 && !body_section {
-                body_section = true;
-                crlf = 0;
-                http_headers = match String::from_utf8_lossy(&*http_headers_bytes).parse() {
-                    Ok(string) => string,
-                    _ => {
-                        send_response(&stream, StatusCodes::BadRequest, None);
-                        return;
-                    }
-                };
-                if !http_headers.contains("Content-Length:") {
-                    send_response(&stream, StatusCodes::LengthRequired, None);
-                    return;
-                }
-                headers = http_headers.split("\r\n").collect::<Vec<_>>();
-                for header in headers {
-                    if header.contains("Content-Length:") {
-                        let content_length_part =
-                            header.split("Content-Length:").collect::<Vec<_>>();
-                        match content_length_part.get(1) {
-                            Some(content_length_str) => {
-                                match content_length_str.trim().parse::<usize>() {
-                                    Ok(num) => {
-                                        if num == 0 {
-                                            send_response(&stream, StatusCodes::BadRequest, None);
-                                            return;
-                                        } else {
-                                            content_length = num;
-                                        }
-                                    }
-                                    _ => {
-                                        send_response(&stream, StatusCodes::LengthRequired, None);
-                                        return;
-                                    }
-                                }
-                            }
+                if crlf >= 4 {
+                    body_section = true;
+                    crlf = 0;
+                    http_headers =
+                        match String::from_utf8_lossy(&*http_headers_bytes).parse::<String>() {
+                            Ok(string) => string.to_lowercase(),
                             _ => {
-                                send_response(&stream, StatusCodes::LengthRequired, None);
+                                send_response(&stream, StatusCodes::BadRequest, None);
                                 return;
                             }
-                        }
-                    }
-                }
-                http_body_bytes.push(byte);
-                if content_length >= 2 {
-                    content_length -= 1;
-                } else {
-                    if content_length == 0 {
+                        };
+                    if !http_headers.contains("content-length:") {
                         send_response(&stream, StatusCodes::LengthRequired, None);
                         return;
-                    } else {
-                        // it's impossible to fit the JSON in one byte so yeah...
-                        send_response(&stream, StatusCodes::BadRequest, None);
-                        return;
+                    }
+                    headers = http_headers.split("\r\n").collect::<Vec<_>>();
+                    for header in headers {
+                        if header.contains("content-length:") {
+                            let content_length_part =
+                                header.split("content-length:").collect::<Vec<_>>();
+                            match content_length_part.get(1) {
+                                Some(content_length_str) => {
+                                    match content_length_str.trim().parse::<usize>() {
+                                        Ok(num) => {
+                                            if num == 0 {
+                                                send_response(
+                                                    &stream,
+                                                    StatusCodes::BadRequest,
+                                                    None,
+                                                );
+                                                return;
+                                            } else {
+                                                content_length = num;
+                                            }
+                                        }
+                                        _ => {
+                                            send_response(&stream, StatusCodes::BadRequest, None);
+                                            return;
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    send_response(&stream, StatusCodes::LengthRequired, None);
+                                    return;
+                                }
+                            }
+                        }
                     }
                 }
             } else if crlf < 3 && !body_section {
