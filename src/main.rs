@@ -6,6 +6,7 @@ use std::{
     io::{BufReader, ErrorKind, prelude::*},
     net::{TcpListener, TcpStream},
 };
+use time::UtcDateTime;
 
 enum StatusCodes {
     Ok,
@@ -138,6 +139,7 @@ fn handle_connection(stream: TcpStream) {
     }
 
     let mut numbers_from_words: Vec<u16> = Vec::new();
+    let mut words_received: Vec<&str> = Vec::new();
 
     for line in http_body.split(',') {
         if line.contains("word") {
@@ -150,26 +152,37 @@ fn handle_connection(stream: TcpStream) {
                 }
             };
             let parts = word_with_quotes.split("\"").collect::<Vec<_>>();
-            let word = match parts.get(1) {
-                Some(word) => word,
+            match parts.get(1) {
+                Some(word) => words_received.push(word),
                 None => {
                     send_response(&stream, StatusCodes::BadRequest, None);
                     return;
                 }
             };
-            numbers_from_words.push(match change_word_to_number(word) {
-                Ok(num) => num,
-                Err(WordToNumberError::BadRequest) => {
-                    send_response(&stream, StatusCodes::BadRequest, None);
-                    return;
-                }
-                Err(WordToNumberError::InternalServer) => {
-                    send_response(&stream, StatusCodes::InternalServer, None);
-                    return;
-                }
-            });
         }
     }
+    for word in &words_received {
+        numbers_from_words.push(match change_word_to_number(word) {
+            Ok(num) => num,
+            Err(WordToNumberError::BadRequest) => {
+                send_response(&stream, StatusCodes::BadRequest, None);
+                return;
+            }
+            Err(WordToNumberError::InternalServer) => {
+                send_response(&stream, StatusCodes::InternalServer, None);
+                return;
+            }
+        });
+    }
+    #[cfg(debug_assertions)]
+    println!(
+        "[{}] Received {words_received:?}; \nReturned {numbers_from_words:?};",
+        UtcDateTime::now()
+    );
+
+    #[cfg(not(debug_assertions))]
+    println!("[{}] Successfully processed request", UtcDateTime::now());
+
     send_response(&stream, StatusCodes::Ok, Some(numbers_from_words))
 }
 

@@ -4,7 +4,6 @@ pub(crate) enum WordToNumberError {
 }
 
 use crate::word_to_number::WordToNumberError::{BadRequest, InternalServer};
-use time::UtcDateTime;
 
 pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumberError> {
     let number: u16;
@@ -77,11 +76,6 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumb
             None => return Err(BadRequest),
         };
     }
-
-    println!(
-        "[{}] Received: {word_number}; Returned: {number}",
-        UtcDateTime::now()
-    );
     Ok(number)
 }
 fn exchange_word_for_number(number_word: &str) -> Option<u16> {
