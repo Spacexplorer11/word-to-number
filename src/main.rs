@@ -239,8 +239,10 @@ fn send_response(mut stream: &TcpStream, status_code: StatusCodes) {
                     returned_json.len()
                 )
             } else {
-                send_response(stream, StatusCodes::InternalServer);
-                return;
+                format_error_headers(
+                    "HTTP/1.1 400 Bad Request\r\n",
+                    "{\"error\": \"400 Bad Request\", \"message\": \"The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage \"",
+                )
             }
         }
         StatusCodes::BadRequest(cause) => match cause {
