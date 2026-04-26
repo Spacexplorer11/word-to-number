@@ -264,7 +264,7 @@ fn send_response(mut stream: &TcpStream, status_code: StatusCodes) {
             ),
             BadRequestCauses::MalformedBody => format_error_headers(
                 status_line,
-                "{\"error\": \"400 Bad Request\", \"message\": \"The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage \"",
+                "{\"error\": \"400 Bad Request\", \"message\": \"The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage \"}",
             ),
         },
         StatusCodes::Timeout => format_error_headers(
