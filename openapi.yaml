@@ -58,7 +58,11 @@ paths:
                   message:
                     type: string
                     enum:
-                      - "You might have a typo? Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                      - "A typo in '{word}' was detected. If there is no typo, the number may be unsupported by this API. Additionally, you may want to check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."
+                      - "The headers or body had a non-UTF-8 byte. Additionally, you may want to check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."
+                      - "The content length header was 0 which is unacceptable. Additionally, you may want to check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."
+                      - "The content length header was malformed. Additionally, you may want to check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."
+                      - "The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage"
         '408':
           description: Timeout
           content:
@@ -72,8 +76,8 @@ paths:
                       - 408 Timeout
                   message:
                     type: string
-                    enum: 
-                      - "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                    enum:
+                      - "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."
         '411':
           description: Length Required
           content:
@@ -83,12 +87,12 @@ paths:
                 properties:
                   error:
                     type: string
-                    enum: 
+                    enum:
                       - 411 Length Required
                   message:
                     type: string
-                    enum: 
-                      - "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                    enum:
+                      - "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."
         '500':
           description: Internal Server Error
           content:
@@ -102,5 +106,5 @@ paths:
                       - 500 Internal Server Error
                   message:
                     type: string
-                    enum: 
-                      - "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details."
+                    enum:
+                      - "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."
