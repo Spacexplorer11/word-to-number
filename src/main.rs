@@ -9,7 +9,7 @@ use std::{
 use time::UtcDateTime;
 
 enum StatusCodes {
-    Ok,
+    Ok(Vec<u16>),
     BadRequest,
     Timeout,
     LengthRequired,
@@ -54,9 +54,9 @@ fn handle_connection(stream: TcpStream) {
                 eprintln!("Whoopsies... {e}");
                 match e.kind() {
                     ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-                        send_response(&stream, StatusCodes::Timeout, None)
+                        send_response(&stream, StatusCodes::Timeout)
                     }
-                    _ => send_response(&stream, StatusCodes::InternalServer, None),
+                    _ => send_response(&stream, StatusCodes::InternalServer),
                 }
                 return;
             }
@@ -71,12 +71,12 @@ fn handle_connection(stream: TcpStream) {
                         match String::from_utf8_lossy(&*http_headers_bytes).parse::<String>() {
                             Ok(string) => string.to_lowercase(),
                             _ => {
-                                send_response(&stream, StatusCodes::BadRequest, None);
+                                send_response(&stream, StatusCodes::BadRequest);
                                 return;
                             }
                         };
                     if !http_headers.contains("content-length:") {
-                        send_response(&stream, StatusCodes::LengthRequired, None);
+                        send_response(&stream, StatusCodes::LengthRequired);
                         return;
                     }
                     headers = http_headers.split("\r\n").collect::<Vec<_>>();
@@ -89,24 +89,20 @@ fn handle_connection(stream: TcpStream) {
                                     match content_length_str.trim().parse::<usize>() {
                                         Ok(num) => {
                                             if num == 0 {
-                                                send_response(
-                                                    &stream,
-                                                    StatusCodes::BadRequest,
-                                                    None,
-                                                );
+                                                send_response(&stream, StatusCodes::BadRequest);
                                                 return;
                                             } else {
                                                 content_length = num;
                                             }
                                         }
                                         _ => {
-                                            send_response(&stream, StatusCodes::BadRequest, None);
+                                            send_response(&stream, StatusCodes::BadRequest);
                                             return;
                                         }
                                     }
                                 }
                                 _ => {
-                                    send_response(&stream, StatusCodes::LengthRequired, None);
+                                    send_response(&stream, StatusCodes::LengthRequired);
                                     return;
                                 }
                             }
@@ -127,7 +123,7 @@ fn handle_connection(stream: TcpStream) {
         http_body = match String::from_utf8_lossy(&*http_body_bytes).parse() {
             Ok(string) => string,
             _ => {
-                send_response(&stream, StatusCodes::BadRequest, None);
+                send_response(&stream, StatusCodes::BadRequest);
                 return;
             }
         };
@@ -147,7 +143,7 @@ fn handle_connection(stream: TcpStream) {
             let word_with_quotes = match parts.get(1) {
                 Some(word) => word,
                 None => {
-                    send_response(&stream, StatusCodes::BadRequest, None);
+                    send_response(&stream, StatusCodes::BadRequest);
                     return;
                 }
             };
@@ -155,7 +151,7 @@ fn handle_connection(stream: TcpStream) {
             match parts.get(1) {
                 Some(word) => words_received.push(word),
                 None => {
-                    send_response(&stream, StatusCodes::BadRequest, None);
+                    send_response(&stream, StatusCodes::BadRequest);
                     return;
                 }
             };
@@ -165,11 +161,11 @@ fn handle_connection(stream: TcpStream) {
         numbers_from_words.push(match change_word_to_number(word) {
             Ok(num) => num,
             Err(WordToNumberError::BadRequest) => {
-                send_response(&stream, StatusCodes::BadRequest, None);
+                send_response(&stream, StatusCodes::BadRequest);
                 return;
             }
             Err(WordToNumberError::InternalServer) => {
-                send_response(&stream, StatusCodes::InternalServer, None);
+                send_response(&stream, StatusCodes::InternalServer);
                 return;
             }
         });
@@ -183,16 +179,12 @@ fn handle_connection(stream: TcpStream) {
     #[cfg(not(debug_assertions))]
     println!("[{}] Successfully processed request", UtcDateTime::now());
 
-    send_response(&stream, StatusCodes::Ok, Some(numbers_from_words))
+    send_response(&stream, StatusCodes::Ok(numbers_from_words))
 }
 
-fn send_response(
-    mut stream: &TcpStream,
-    status_code: StatusCodes,
-    numbers_from_words: Option<Vec<u16>>,
-) {
+fn send_response(mut stream: &TcpStream, status_code: StatusCodes) {
     let status_line = match status_code {
-        StatusCodes::Ok => "HTTP/1.1 200 OK\r\n",
+        StatusCodes::Ok(_) => "HTTP/1.1 200 OK\r\n",
         StatusCodes::BadRequest => "HTTP/1.1 400 Bad Request\r\n",
         StatusCodes::Timeout => "HTTP/1.1 408 Request Timeout\r\n",
         StatusCodes::LengthRequired => "HTTP/1.1 411 Length Required\r\n",
@@ -202,10 +194,7 @@ fn send_response(
     let ok_headers = "Cache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n";
 
     let response = match status_code {
-        StatusCodes::Ok => {
-            let numbers_from_words = numbers_from_words.expect(
-                "You messed up and didn't pass the number from words array but wanted to send OK",
-            );
+        StatusCodes::Ok(numbers_from_words) => {
             if !numbers_from_words.is_empty() {
                 let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
                 if numbers_from_words.len() > 1 {
@@ -223,7 +212,7 @@ fn send_response(
                     returned_json.len()
                 )
             } else {
-                send_response(stream, StatusCodes::BadRequest, None);
+                send_response(stream, StatusCodes::BadRequest);
                 return;
             }
         }
