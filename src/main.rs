@@ -1,10 +1,11 @@
 mod word_to_number;
 
 use crate::word_to_number::{WordToNumberError, change_word_to_number};
+use colored::Colorize;
 use serde_json::json;
 use std::time::Duration;
 use std::{
-    io::{BufReader, ErrorKind, prelude::*},
+    io::{BufReader, ErrorKind, Read, Write},
     net::{TcpListener, TcpStream},
 };
 use time::UtcDateTime;
@@ -203,11 +204,15 @@ fn handle_connection(stream: TcpStream) {
     #[cfg(debug_assertions)]
     println!(
         "[{}] Received {words_received:?}; \nReturned {numbers_from_words:?};",
-        UtcDateTime::now()
+        UtcDateTime::now().to_string().yellow()
     );
 
     #[cfg(not(debug_assertions))]
-    println!("[{}] Successfully processed request", UtcDateTime::now());
+    println!(
+        "[{}] {}",
+        UtcDateTime::now().to_string().yellow(),
+        "Successfully processed request".green()
+    );
 
     send_response(&stream, StatusCodes::Ok(numbers_from_words))
 }
@@ -305,6 +310,12 @@ fn custom_400_message(custom: &str) -> String {
 }
 
 fn format_error_headers(status_line: &str, message: &str) -> String {
+    println!(
+        "[{}] {} Returned status {}",
+        UtcDateTime::now().to_string().yellow(),
+        "Error:".red(),
+        status_line.red().bold()
+    );
     format!(
         "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{message}",
         message.len()
