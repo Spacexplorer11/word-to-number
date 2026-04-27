@@ -1,6 +1,7 @@
 mod word_to_number;
 
 use crate::word_to_number::{WordToNumberError, change_word_to_number};
+use serde_json::json;
 use std::time::Duration;
 use std::{
     io::{BufReader, ErrorKind, prelude::*},
@@ -266,20 +267,20 @@ fn send_response(mut stream: &TcpStream, status_code: StatusCodes) {
             ),
             BadRequestCauses::MalformedBody => format_error_headers(
                 status_line,
-                "{\"error\": \"400 Bad Request\", \"message\": \"The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage\"}",
+                &json!({"error": "400 Bad Request", "message": "The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage"}).to_string()
             ),
         },
         StatusCodes::Timeout => format_error_headers(
             status_line,
-            "{\"error\": \"408 Timeout\", \"message\":\"Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details.\"}",
+            &json!({"error": "408 Timeout", "message": "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."}).to_string()
         ),
         StatusCodes::LengthRequired => format_error_headers(
             status_line,
-            "{\"error\": \"411 Length Required\", \"message\":\"Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details.\"}",
+            &json!({"error": "411 Length Required", "message": "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."}).to_string()
         ),
         StatusCodes::InternalServer => format_error_headers(
             status_line,
-            "{\"error\": \"500 Internal Server Error\", \"message\":\"Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details.\"}",
+            &json!({"error": "500 Internal Server Error", "message": "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."}).to_string()
         ),
     };
 
@@ -297,9 +298,10 @@ fn send_response(mut stream: &TcpStream, status_code: StatusCodes) {
 }
 
 fn custom_400_message(custom: &str) -> String {
-    format!(
-        "{{\"error\": \"400 Bad Request\", \"message\":\"{custom} Additionally, you may want to check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details.\"}}"
-    )
+    json!({
+        "error": "400 Bad Request",
+        "message": format!("{custom} Additionally, you may want to check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details.")
+    }).to_string()
 }
 
 fn format_error_headers(status_line: &str, message: &str) -> String {
