@@ -61,13 +61,18 @@ For multiple numbers the response will always be like this:
 The numbers' index will go up to a reasonable amount but does depend on how the server is feeling at that moment.
 
 ### Errors
-The only 6 error codes you can receive are:
-- `400` - Bad request. Make sure your request is formatted to the requirements in request section. This will also be returned if the request has a typo, if the number is unsupported or if your `Content-Length` header is 0 or malformed. **Currently only numbers up to 999 are supported. This will change soon**
+The only 4 error codes you can receive from my server are (two others from Cloudflare are listed):
+- `400` - Bad request. There are only 5 reasons you may get this:
+- - Typo - You typed something wrong, or the number you sent isn't supported. **We only support numbers up to 999 at the moment**
+- - Non-UTF-8 Byte - You sent a byte which couldn't be encoded in UTF-8 and hence was rejected.
+- - Content Length Zero - The content length header you sent, was zero. This is unacceptable as we require a body & a correct content length to process the body.
+- - Content Length Malformed - The content length header you sent, was malformed. For example, could be if it had something NaN (Not a Number) in it.
+- - Malformed Body - You didn't follow the rules set out [above](#request) and hence your request was rejected.
 - `408` - Request Timed Out. Your request timed out. This may be due to a variety of reasons. For example, you may have sent fewer bytes than your Content-Length header said or just stopped sending bytes for more than 5 seconds.
 - `411` - Length Required. You didn't provide a `Content-Length` header and without that my API rejects your request. You may also get this if you send no body which isn't acceptable.
-- `429` - Too Many Requests. This may be returned by my Cloudflare Tunnel since I have a ratelimit of 15 requests / 10 seconds to protect my server.
+- `429` - Too Many Requests. *(Cloudflare-Generated)* This may be returned by my Cloudflare Tunnel since I have a ratelimit of 15 requests / 10 seconds to protect my server.
 - `500` - Internal Server Error. This is usually out of your control, but if you receive these a lot please email [akaal@akaalroop.com](mailto:akaal@akaalroop.com) and let me know!
-- `502` - Bad Gateway. Since I use a Cloudflare Tunnel, you'll be able to connect but if you receive this then that means *my server* is down / not running the API. If you get this please email [akaal@akaalroop.com](mailto:akaal@akaalroop.com) and let me know!
+- `502` - Bad Gateway. *(Cloudflare-Generated)* Since I use a Cloudflare Tunnel, you'll be able to connect but if you receive this then that means *my server* is down / not running the API. If you get this please email [akaal@akaalroop.com](mailto:akaal@akaalroop.com) and let me know!
 
 ## Self-hosting
 1. Clone the repo
