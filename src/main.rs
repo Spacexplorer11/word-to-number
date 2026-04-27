@@ -138,7 +138,7 @@ fn handle_connection(stream: TcpStream) {
         }
     }
 
-    let mut numbers_from_words: Vec<u16> = Vec::new();
+    let mut numbers_from_words: Vec<u64> = Vec::new();
     let mut words_received: Vec<&str> = Vec::new();
 
     for line in http_body.split(',') {
@@ -189,7 +189,7 @@ fn handle_connection(stream: TcpStream) {
 fn send_response(
     mut stream: &TcpStream,
     status_code: StatusCodes,
-    numbers_from_words: Option<Vec<u16>>,
+    numbers_from_words: Option<Vec<u64>>,
 ) {
     let status_line = match status_code {
         StatusCodes::Ok => "HTTP/1.1 200 OK\r\n",

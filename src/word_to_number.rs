@@ -5,8 +5,8 @@ pub(crate) enum WordToNumberError {
 
 use crate::word_to_number::WordToNumberError::{BadRequest, InternalServer};
 
-pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumberError> {
-    let number: u16;
+pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumberError> {
+    let number: u64;
     let word_number = word_number.to_lowercase();
 
     if word_number.contains(" and ") {
@@ -78,7 +78,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u16, WordToNumb
     }
     Ok(number)
 }
-fn exchange_word_for_number(number_word: &str) -> Option<u16> {
+fn exchange_word_for_number(number_word: &str) -> Option<u64> {
     match number_word {
         "one" => Some(1),
         "two" => Some(2),
