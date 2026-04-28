@@ -1,19 +1,29 @@
 mod word_to_number;
 
 use crate::word_to_number::{WordToNumberError, change_word_to_number};
+use colored::Colorize;
+use serde_json::json;
 use std::time::Duration;
 use std::{
-    io::{BufReader, ErrorKind, prelude::*},
+    io::{BufReader, ErrorKind, Read, Write},
     net::{TcpListener, TcpStream},
 };
 use time::UtcDateTime;
 
 enum StatusCodes {
-    Ok,
-    BadRequest,
+    Ok(Vec<u16>),
+    BadRequest(BadRequestCauses),
     Timeout,
     LengthRequired,
     InternalServer,
+}
+
+enum BadRequestCauses {
+    Typo(String),
+    NonUtf8,
+    ContentLengthZero,
+    ContentLengthMalformed,
+    MalformedBody,
 }
 
 fn main() {
@@ -54,9 +64,9 @@ fn handle_connection(stream: TcpStream) {
                 eprintln!("Whoopsies... {e}");
                 match e.kind() {
                     ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-                        send_response(&stream, StatusCodes::Timeout, None)
+                        send_response(&stream, StatusCodes::Timeout)
                     }
-                    _ => send_response(&stream, StatusCodes::InternalServer, None),
+                    _ => send_response(&stream, StatusCodes::InternalServer),
                 }
                 return;
             }
@@ -67,16 +77,18 @@ fn handle_connection(stream: TcpStream) {
                 if crlf >= 4 {
                     body_section = true;
                     crlf = 0;
-                    http_headers =
-                        match String::from_utf8_lossy(&*http_headers_bytes).parse::<String>() {
-                            Ok(string) => string.to_lowercase(),
-                            _ => {
-                                send_response(&stream, StatusCodes::BadRequest, None);
-                                return;
-                            }
-                        };
+                    http_headers = match String::from_utf8(http_headers_bytes.clone()) {
+                        Ok(string) => string.to_lowercase(),
+                        _ => {
+                            send_response(
+                                &stream,
+                                StatusCodes::BadRequest(BadRequestCauses::NonUtf8),
+                            );
+                            return;
+                        }
+                    };
                     if !http_headers.contains("content-length:") {
-                        send_response(&stream, StatusCodes::LengthRequired, None);
+                        send_response(&stream, StatusCodes::LengthRequired);
                         return;
                     }
                     headers = http_headers.split("\r\n").collect::<Vec<_>>();
@@ -91,8 +103,9 @@ fn handle_connection(stream: TcpStream) {
                                             if num == 0 {
                                                 send_response(
                                                     &stream,
-                                                    StatusCodes::BadRequest,
-                                                    None,
+                                                    StatusCodes::BadRequest(
+                                                        BadRequestCauses::ContentLengthZero,
+                                                    ),
                                                 );
                                                 return;
                                             } else {
@@ -100,13 +113,18 @@ fn handle_connection(stream: TcpStream) {
                                             }
                                         }
                                         _ => {
-                                            send_response(&stream, StatusCodes::BadRequest, None);
+                                            send_response(
+                                                &stream,
+                                                StatusCodes::BadRequest(
+                                                    BadRequestCauses::ContentLengthMalformed,
+                                                ),
+                                            );
                                             return;
                                         }
                                     }
                                 }
                                 _ => {
-                                    send_response(&stream, StatusCodes::LengthRequired, None);
+                                    send_response(&stream, StatusCodes::LengthRequired);
                                     return;
                                 }
                             }
@@ -124,10 +142,10 @@ fn handle_connection(stream: TcpStream) {
                 }
             }
         }
-        http_body = match String::from_utf8_lossy(&*http_body_bytes).parse() {
+        http_body = match String::from_utf8(http_body_bytes) {
             Ok(string) => string,
             _ => {
-                send_response(&stream, StatusCodes::BadRequest, None);
+                send_response(&stream, StatusCodes::BadRequest(BadRequestCauses::NonUtf8));
                 return;
             }
         };
@@ -138,7 +156,7 @@ fn handle_connection(stream: TcpStream) {
         }
     }
 
-    let mut numbers_from_words: Vec<u64> = Vec::new();
+    let mut numbers_from_words: Vec<u16> = Vec::new();
     let mut words_received: Vec<&str> = Vec::new();
 
     for line in http_body.split(',') {
@@ -147,7 +165,10 @@ fn handle_connection(stream: TcpStream) {
             let word_with_quotes = match parts.get(1) {
                 Some(word) => word,
                 None => {
-                    send_response(&stream, StatusCodes::BadRequest, None);
+                    send_response(
+                        &stream,
+                        StatusCodes::BadRequest(BadRequestCauses::MalformedBody),
+                    );
                     return;
                 }
             };
@@ -155,7 +176,10 @@ fn handle_connection(stream: TcpStream) {
             match parts.get(1) {
                 Some(word) => words_received.push(word),
                 None => {
-                    send_response(&stream, StatusCodes::BadRequest, None);
+                    send_response(
+                        &stream,
+                        StatusCodes::BadRequest(BadRequestCauses::MalformedBody),
+                    );
                     return;
                 }
             };
@@ -165,11 +189,14 @@ fn handle_connection(stream: TcpStream) {
         numbers_from_words.push(match change_word_to_number(word) {
             Ok(num) => num,
             Err(WordToNumberError::BadRequest) => {
-                send_response(&stream, StatusCodes::BadRequest, None);
+                send_response(
+                    &stream,
+                    StatusCodes::BadRequest(BadRequestCauses::Typo(String::from(*word))),
+                );
                 return;
             }
             Err(WordToNumberError::InternalServer) => {
-                send_response(&stream, StatusCodes::InternalServer, None);
+                send_response(&stream, StatusCodes::InternalServer);
                 return;
             }
         });
@@ -177,35 +204,30 @@ fn handle_connection(stream: TcpStream) {
     #[cfg(debug_assertions)]
     println!(
         "[{}] Received {words_received:?}; \nReturned {numbers_from_words:?};",
-        UtcDateTime::now()
+        UtcDateTime::now().to_string().yellow()
     );
 
     #[cfg(not(debug_assertions))]
-    println!("[{}] Successfully processed request", UtcDateTime::now());
+    println!(
+        "[{}] {}",
+        UtcDateTime::now().to_string().yellow(),
+        "Successfully processed request".green()
+    );
 
-    send_response(&stream, StatusCodes::Ok, Some(numbers_from_words))
+    send_response(&stream, StatusCodes::Ok(numbers_from_words))
 }
 
-fn send_response(
-    mut stream: &TcpStream,
-    status_code: StatusCodes,
-    numbers_from_words: Option<Vec<u64>>,
-) {
+fn send_response(mut stream: &TcpStream, status_code: StatusCodes) {
     let status_line = match status_code {
-        StatusCodes::Ok => "HTTP/1.1 200 OK\r\n",
-        StatusCodes::BadRequest => "HTTP/1.1 400 Bad Request\r\n",
+        StatusCodes::Ok(_) => "HTTP/1.1 200 OK\r\n",
+        StatusCodes::BadRequest(_) => "HTTP/1.1 400 Bad Request\r\n",
         StatusCodes::Timeout => "HTTP/1.1 408 Request Timeout\r\n",
         StatusCodes::LengthRequired => "HTTP/1.1 411 Length Required\r\n",
         StatusCodes::InternalServer => "HTTP/1.1 500 Internal Server Error\r\n",
     };
-    let default_headers = "Connection: close\r\n\r\n";
-    let ok_headers = "Cache-Control: public, max-age=604800, s-maxage=604800, immutable\r\n";
 
     let response = match status_code {
-        StatusCodes::Ok => {
-            let numbers_from_words = numbers_from_words.expect(
-                "You messed up and didn't pass the number from words array but wanted to send OK",
-            );
+        StatusCodes::Ok(numbers_from_words) => {
             if !numbers_from_words.is_empty() {
                 let mut returned_json = format!("\"number\": {}", numbers_from_words[0]);
                 if numbers_from_words.len() > 1 {
@@ -219,42 +241,52 @@ fn send_response(
                 }
                 returned_json = format!("{{{returned_json}}}");
                 format!(
-                    "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{ok_headers}{default_headers}{returned_json}",
+                    "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\nCache-Control: public, max-age=604800, s-maxage=604800, immutable\r\nConnection: close\r\n\r\n{returned_json}",
                     returned_json.len()
                 )
             } else {
-                send_response(stream, StatusCodes::BadRequest, None);
-                return;
+                format_error_headers(
+                    "HTTP/1.1 400 Bad Request\r\n",
+                    "{\"error\": \"400 Bad Request\", \"message\": \"The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage\"}",
+                )
             }
         }
-        StatusCodes::BadRequest => {
-            let error_message = "{\"error\": \"400 Bad Request\", \"message\":\"You might have a typo? Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
-            format!(
-                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
-                error_message.len()
-            )
-        }
-        StatusCodes::Timeout => {
-            let error_message = "{\"error\": \"408 Timeout\", \"message\":\"Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
-            format!(
-                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
-                error_message.len()
-            )
-        }
-        StatusCodes::LengthRequired => {
-            let error_message = "{\"error\": \"411 Length Required\", \"message\":\"Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
-            format!(
-                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
-                error_message.len()
-            )
-        }
-        StatusCodes::InternalServer => {
-            let error_message = "{\"error\": \"500 Internal Server Error\", \"message\":\"Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md for more details.\"}";
-            format!(
-                "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\n{default_headers}{error_message}",
-                error_message.len()
-            )
-        }
+        StatusCodes::BadRequest(cause) => match cause {
+            BadRequestCauses::Typo(typo) => format_error_headers(
+                status_line,
+                &custom_400_message(&format!(
+                    "A typo in \'{typo}\' was detected. If there is no typo, the number may be unsupported by this API."
+                )),
+            ),
+            BadRequestCauses::NonUtf8 => format_error_headers(
+                status_line,
+                &custom_400_message("The headers or body had a non-UTF-8 byte."),
+            ),
+            BadRequestCauses::ContentLengthZero => format_error_headers(
+                status_line,
+                &custom_400_message("The content length header was 0 which is unacceptable."),
+            ),
+            BadRequestCauses::ContentLengthMalformed => format_error_headers(
+                status_line,
+                &custom_400_message("The content length header was malformed."),
+            ),
+            BadRequestCauses::MalformedBody => format_error_headers(
+                status_line,
+                &json!({"error": "400 Bad Request", "message": "The body was malformed. Please make sure it is valid JSON and formatted to the requirements listed in my README here: https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage"}).to_string()
+            ),
+        },
+        StatusCodes::Timeout => format_error_headers(
+            status_line,
+            &json!({"error": "408 Timeout", "message": "Please check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."}).to_string()
+        ),
+        StatusCodes::LengthRequired => format_error_headers(
+            status_line,
+            &json!({"error": "411 Length Required", "message": "Please provide a Content-Length header. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."}).to_string()
+        ),
+        StatusCodes::InternalServer => format_error_headers(
+            status_line,
+            &json!({"error": "500 Internal Server Error", "message": "Please try again later. Additionally, check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details."}).to_string()
+        ),
     };
 
     #[cfg(debug_assertions)]
@@ -268,4 +300,24 @@ fn send_response(
         eprintln!("Failed to flush response to client: {err}");
         return;
     }
+}
+
+fn custom_400_message(custom: &str) -> String {
+    json!({
+        "error": "400 Bad Request",
+        "message": format!("{custom} Additionally, you may want to check my README at https://github.com/spacexplorer11/word-to-number/blob/main/README.md#Usage for more details.")
+    }).to_string()
+}
+
+fn format_error_headers(status_line: &str, message: &str) -> String {
+    println!(
+        "[{}] {} Returned status {}",
+        UtcDateTime::now().to_string().yellow(),
+        "Error:".red(),
+        status_line.red().bold()
+    );
+    format!(
+        "{status_line}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{message}",
+        message.len()
+    )
 }
