@@ -9,7 +9,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
     let mut number: u64 = 0;
     let word_number = word_number.to_lowercase();
     let mut word_numbers_mapped: Vec<Option<u64>> = Vec::new();
-    let mut multiplier_indexes: Vec<usize> = Vec::new();
+    let mut non_multiplier_indexes: Vec<usize> = Vec::new();
     if word_number.contains(" and ") {
         let parts = word_number.split(" and ").collect::<Vec<&str>>();
         word_numbers_mapped = parts
@@ -46,30 +46,42 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
             Some(number) => *number,
             None => return Err(BadRequest),
         };
-        if is_multiplier_number(number) {
-            multiplier_indexes.push(index)
+        if is_non_multiplier_number(number) && index != 0 {
+            non_multiplier_indexes.push(index)
         }
     }
 
     let mut elements_removed: usize = 0;
     let mut numbers_to_add = Vec::new();
-    for mut index in multiplier_indexes {
+    for mut index in non_multiplier_indexes {
         index -= elements_removed;
         let mut temp_number = 1;
-        for i in 0..=index {
+        for i in 0..index {
             temp_number *= word_numbers_mapped[i].unwrap(); // This is safe cuz the whole vector is checked above
         }
         numbers_to_add.push(temp_number);
-        elements_removed += index + 1; // Added one since the elements removed != index since index starts at 0.
-        word_numbers_mapped.drain(0..=index);
+        elements_removed += index;
+        word_numbers_mapped.drain(0..index);
     }
     if !word_numbers_mapped.is_empty() {
-        for num in word_numbers_mapped {
-            let num = match num {
-                Some(num) => num,
-                None => return Err(BadRequest),
-            };
-            number += num
+        if is_non_multiplier_number(word_numbers_mapped[0].unwrap()) {
+            if word_numbers_mapped.len() > 1 {
+                let mut temp_number = 1;
+                for number in word_numbers_mapped {
+                    temp_number *= number.unwrap();
+                }
+                number += temp_number
+            } else {
+                number += word_numbers_mapped[0].unwrap()
+            }
+        } else {
+            for num in word_numbers_mapped {
+                let num = match num {
+                    Some(num) => num,
+                    None => return Err(BadRequest),
+                };
+                number += num
+            }
         }
     }
     for num in numbers_to_add {
@@ -112,6 +124,6 @@ fn exchange_word_for_number(number_word: &str) -> Option<u64> {
     }
 }
 
-fn is_multiplier_number(number: u64) -> bool {
-    number.to_string().ends_with("00")
+fn is_non_multiplier_number(number: u64) -> bool {
+    number < 100
 }
