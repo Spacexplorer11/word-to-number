@@ -11,7 +11,7 @@ use std::{
 use time::UtcDateTime;
 
 enum StatusCodes {
-    Ok(Vec<u16>),
+    Ok(Vec<u64>),
     BadRequest(BadRequestCauses),
     Timeout,
     LengthRequired,
@@ -156,7 +156,7 @@ fn handle_connection(stream: TcpStream) {
         }
     }
 
-    let mut numbers_from_words: Vec<u16> = Vec::new();
+    let mut numbers_from_words: Vec<u64> = Vec::new();
     let mut words_received: Vec<&str> = Vec::new();
 
     for line in http_body.split(',') {
