@@ -1,18 +1,18 @@
 pub(crate) enum WordToNumberError {
     BadRequest,
-    InternalServer,
 }
 
-use crate::word_to_number::WordToNumberError::{BadRequest, InternalServer};
+use crate::word_to_number::WordToNumberError::BadRequest;
 
 pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumberError> {
     let mut number: u64 = 0;
     let word_number = word_number.to_lowercase();
-    let mut word_numbers_mapped: Vec<Option<u64>> = Vec::new();
+    let mut word_numbers_mapped_option_possible = Vec::new();
+    let mut word_numbers_mapped = Vec::new();
     let mut non_multiplier_indexes: Vec<usize> = Vec::new();
     if word_number.contains(" and ") {
         let parts = word_number.split(" and ").collect::<Vec<&str>>();
-        word_numbers_mapped = parts
+        word_numbers_mapped_option_possible = parts
             .get(0)
             .unwrap()
             .split_whitespace()
@@ -25,25 +25,28 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
         if numbers_after_and.contains('-') {
             let numbers = numbers_after_and.split('-').collect::<Vec<&str>>();
             for number in numbers {
-                word_numbers_mapped.push(exchange_word_for_number(number));
+                word_numbers_mapped_option_possible.push(exchange_word_for_number(number));
             }
         } else {
-            word_numbers_mapped.push(exchange_word_for_number(numbers_after_and))
+            word_numbers_mapped_option_possible.push(exchange_word_for_number(numbers_after_and))
         }
     } else if word_number.contains('-') {
         let numbers = word_number.split('-').collect::<Vec<&str>>();
         for number in numbers {
-            word_numbers_mapped.push(exchange_word_for_number(number));
+            word_numbers_mapped_option_possible.push(exchange_word_for_number(number));
         }
     } else {
-        word_numbers_mapped = word_number
+        word_numbers_mapped_option_possible = word_number
             .split_whitespace()
             .map(|number| exchange_word_for_number(number))
             .collect::<Vec<Option<u64>>>();
     }
-    for (index, number) in word_numbers_mapped.iter().enumerate() {
+    for (index, number) in word_numbers_mapped_option_possible.iter().enumerate() {
         let number = match number {
-            Some(number) => *number,
+            Some(number) => {
+                word_numbers_mapped.push(*number);
+                *number
+            }
             None => return Err(BadRequest),
         };
         if is_non_multiplier_number(number) && index != 0 {
@@ -57,29 +60,25 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
         index -= elements_removed;
         let mut temp_number = 1;
         for i in 0..index {
-            temp_number *= word_numbers_mapped[i].unwrap(); // This is safe cuz the whole vector is checked above
+            temp_number *= word_numbers_mapped[i];
         }
         numbers_to_add.push(temp_number);
         elements_removed += index;
         word_numbers_mapped.drain(0..index);
     }
     if !word_numbers_mapped.is_empty() {
-        if is_non_multiplier_number(word_numbers_mapped[0].unwrap()) {
+        if is_non_multiplier_number(word_numbers_mapped[0]) {
             if word_numbers_mapped.len() > 1 {
                 let mut temp_number = 1;
                 for number in word_numbers_mapped {
-                    temp_number *= number.unwrap();
+                    temp_number *= number;
                 }
                 number += temp_number
             } else {
-                number += word_numbers_mapped[0].unwrap()
+                number += word_numbers_mapped[0]
             }
         } else {
             for num in word_numbers_mapped {
-                let num = match num {
-                    Some(num) => num,
-                    None => return Err(BadRequest),
-                };
                 number += num
             }
         }
@@ -120,6 +119,8 @@ fn exchange_word_for_number(number_word: &str) -> Option<u64> {
         "ninety" => Some(90),
         "hundred" => Some(100),
         "thousand" => Some(1000),
+        "million" => Some(1_000_000),
+        "billion" => Some(1_000_000_000),
         _ => None,
     }
 }
