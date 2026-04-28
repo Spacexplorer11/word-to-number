@@ -195,10 +195,6 @@ fn handle_connection(stream: TcpStream) {
                 );
                 return;
             }
-            Err(WordToNumberError::InternalServer) => {
-                send_response(&stream, StatusCodes::InternalServer);
-                return;
-            }
         });
     }
     #[cfg(debug_assertions)]

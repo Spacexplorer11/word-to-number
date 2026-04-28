@@ -6,10 +6,9 @@ use crate::word_to_number::WordToNumberError::BadRequest;
 
 pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumberError> {
     let mut number: u64 = 0;
+    let mut word_numbers_mapped = Vec::new();
     let word_number = word_number.to_lowercase();
     let mut word_numbers_mapped_option_possible = Vec::new();
-    let mut word_numbers_mapped = Vec::new();
-    let mut non_multiplier_indexes: Vec<usize> = Vec::new();
     if word_number.contains(" and ") {
         let parts = word_number.split(" and ").collect::<Vec<&str>>();
         word_numbers_mapped_option_possible = parts
@@ -41,6 +40,8 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
             .map(|number| exchange_word_for_number(number))
             .collect::<Vec<Option<u64>>>();
     }
+    drop(word_number);
+    let mut non_multiplier_indexes: Vec<usize> = Vec::new();
     for (index, number) in word_numbers_mapped_option_possible.iter().enumerate() {
         let number = match number {
             Some(number) => {
@@ -53,7 +54,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
             non_multiplier_indexes.push(index)
         }
     }
-
+    drop(word_numbers_mapped_option_possible);
     let mut elements_removed: usize = 0;
     let mut numbers_to_add = Vec::new();
     for mut index in non_multiplier_indexes {
