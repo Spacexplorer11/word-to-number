@@ -7,7 +7,7 @@ Check out my Scalar page: https://registry.scalar.com/@akaalroop/apis/word-to-nu
 
 ## What is it?
 This is an API where you send string numbers and receive integers. For example, you can exchange "sixty-seven" for 67.  
-This API supports big numbers! The words we support go up to "billion". It can't understand trillion for example. However, you can chain numbers like "one thousand billion" to get 1,000,000,000!
+This API supports big numbers! The words we support go up to "billion". It can't understand trillion for example. However, you can chain numbers like "one thousand billion" to get 1,000,000,000, 000!
 
 ## Usage
 ### The number itself
@@ -15,6 +15,7 @@ Hi! This gets a whole section to itself because (at least for now) my API is qui
 #### Valid examples
 - "sixty-seven"
 - "one hundred and forty-seven"
+- "one hundred forty-two"
 - "one"
 - "two thousand and ninety"
 - "two thousand, five hundred and sixty-three"
@@ -22,9 +23,9 @@ Hi! This gets a whole section to itself because (at least for now) my API is qui
 - "fifty-seven thousand"
 - "sixty-three thousand and five hundred twenty-three"
 - "two million, seven hundred thousand and sixty-four"
+
 #### Invalid examples
 - "sixty seven"
-- "one hundred forty-two"
 - "one hundred and fifty and nine"
 - "two thousand and five hundred and sixty-three"
 - "a million"
@@ -37,7 +38,7 @@ Hopefully the examples show everything, but to clarify:
 - You may only have "and" once in your request.
 - You must use English.
 - No other numbers other than integers are allowed.
-- 
+
 ### Request
 You must send a POST request to the server at https://word-to-number.akaalroop.com/.
 The body of the request must be JSON formatted like this:  
