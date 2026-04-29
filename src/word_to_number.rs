@@ -10,7 +10,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
     let word_number = word_number.to_lowercase();
     let mut word_numbers_mapped_option_possible = Vec::new();
     if word_number.contains(" and ") {
-        let parts = word_number.split(" and ").collect::<Vec<&str>>();
+        let parts = word_number.splitn(2, " and ").collect::<Vec<&str>>();
         word_numbers_mapped_option_possible = parts
             .get(0)
             .unwrap()
@@ -21,14 +21,12 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
             Some(smth) => smth,
             None => "",
         };
-        if numbers_after_and.contains('-') {
-            let numbers = numbers_after_and.split('-').collect::<Vec<&str>>();
-            for number in numbers {
-                word_numbers_mapped_option_possible.push(exchange_word_for_number(number));
-            }
-        } else {
-            word_numbers_mapped_option_possible.push(exchange_word_for_number(numbers_after_and))
-        }
+        word_numbers_mapped_option_possible.extend(
+            numbers_after_and
+                .split_whitespace()
+                .flat_map(|number| number.split('-'))
+                .map(|number| exchange_word_for_number(number)),
+        );
     } else if word_number.contains('-') {
         let numbers = word_number.split('-').collect::<Vec<&str>>();
         for number in numbers {
@@ -59,9 +57,11 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
     let mut numbers_to_add = Vec::new();
     for mut index in non_multiplier_indexes {
         index -= elements_removed;
-        let mut temp_number = 1;
+        let mut temp_number: u64 = 1;
         for i in 0..index {
-            temp_number *= word_numbers_mapped[i];
+            temp_number = temp_number
+                .checked_mul(word_numbers_mapped[i])
+                .ok_or(BadRequest)?;
         }
         numbers_to_add.push(temp_number);
         elements_removed += index;
@@ -70,17 +70,19 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
     if !word_numbers_mapped.is_empty() {
         if is_non_multiplier_number(word_numbers_mapped[0]) {
             if word_numbers_mapped.len() > 1 {
-                let mut temp_number = 1;
+                let mut temp_number: u64 = 1;
                 for number in word_numbers_mapped {
-                    temp_number *= number;
+                    temp_number = temp_number.checked_mul(number).ok_or(BadRequest)?;
                 }
-                number += temp_number
+                number = number.checked_add(temp_number).ok_or(BadRequest)?;
             } else {
-                number += word_numbers_mapped[0]
+                number = number
+                    .checked_add(word_numbers_mapped[0])
+                    .ok_or(BadRequest)?;
             }
         } else {
             for num in word_numbers_mapped {
-                number += num
+                number = number.checked_add(num).ok_or(BadRequest)?;
             }
         }
     }
