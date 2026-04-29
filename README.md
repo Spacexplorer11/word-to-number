@@ -7,13 +7,39 @@ Check out my Scalar page: https://registry.scalar.com/@akaalroop/apis/word-to-nu
 
 ## What is it?
 This is an API where you send string numbers and receive integers. For example, you can exchange "sixty-seven" for 67.  
->[!Important]
-> This API only consistently supports numbers up to 999 at the moment. Some numbers past 999 may work but nothing is guaranteed. This will change within the next 7 days.
+This API supports big numbers! The words we support go up to "billion". It can't understand trillion for example. However, you can chain numbers like "one thousand billion" to get 1,000,000,000!
 
 ## Usage
+### The number itself
+Hi! This gets a whole section to itself because (at least for now) my API is quite picky.
+#### Valid examples
+- "sixty-seven"
+- "one hundred and forty-seven"
+- "one"
+- "two thousand and ninety"
+- "two thousand, five hundred and sixty-three"
+- "five thousand"
+- "fifty-seven thousand"
+- "sixty-three thousand and five hundred twenty-three"
+- "two million, seven hundred thousand and sixty-four"
+#### Invalid examples
+- "sixty seven"
+- "one hundred forty-two"
+- "one hundred and fifty and nine"
+- "two thousand and five hundred and sixty-three"
+- "a million"
+- "the million"
+
+Hopefully the examples show everything, but to clarify:
+#### Requirements:
+- You must have a hyphen ("-") between two-digit numbers.
+- You are allowed to add commas as they are automatically removed by the API during processing. **However, you may not omit spaces**
+- You may only have "and" once in your request.
+- You must use English.
+- No other numbers other than integers are allowed.
+- 
 ### Request
-You must send a POST request to the server at https://word-to-number.akaalroop.com/.  
-The request has to be like number (hundred) (and number). If you do number hundred number, you will get unexpected results. You must follow the rules of number (hundred) **and** (number). You may not just submit "hundred". Submitting any integer below 999 in English following that format will yield predictable results. You may not use articles like "a" (yet).
+You must send a POST request to the server at https://word-to-number.akaalroop.com/.
 The body of the request must be JSON formatted like this:  
 ```json
 {
@@ -63,7 +89,7 @@ The numbers' index will go up to a reasonable amount but does depend on how the 
 ### Errors
 The only 4 error codes you can receive from my server are (two others from Cloudflare are listed):
 - `400` - Bad request. There are only 5 reasons you may get this:
-- - Typo - You typed something wrong, or the number you sent isn't supported. **We only support numbers up to 999 at the moment**
+- - Typo - You typed something wrong, or the number you sent isn't supported.
 - - Non-UTF-8 Byte - You sent a byte which couldn't be encoded in UTF-8 and hence was rejected.
 - - Content Length Zero - The content length header you sent, was zero. This is unacceptable as we require a body & a correct content length to process the body.
 - - Content Length Malformed - The content length header you sent, was malformed. For example, could be if it had something NaN (Not a Number) in it.
