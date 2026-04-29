@@ -7,8 +7,8 @@ use crate::word_to_number::WordToNumberError::BadRequest;
 pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumberError> {
     let mut number: u64 = 0;
     let mut word_numbers_mapped = Vec::new();
-    let word_number = word_number.to_lowercase();
-    let mut word_numbers_mapped_option_possible = Vec::new();
+    let word_number = word_number.to_lowercase().replace(',', "");
+    let mut word_numbers_mapped_option_possible: Vec<Option<u64>>;
     if word_number.contains(" and ") {
         let parts = word_number.splitn(2, " and ").collect::<Vec<&str>>();
         word_numbers_mapped_option_possible = parts
@@ -24,14 +24,8 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
         word_numbers_mapped_option_possible.extend(
             numbers_after_and
                 .split_whitespace()
-                .flat_map(|number| number.split('-'))
                 .map(|number| exchange_word_for_number(number)),
         );
-    } else if word_number.contains('-') {
-        let numbers = word_number.split('-').collect::<Vec<&str>>();
-        for number in numbers {
-            word_numbers_mapped_option_possible.push(exchange_word_for_number(number));
-        }
     } else {
         word_numbers_mapped_option_possible = word_number
             .split_whitespace()
@@ -92,6 +86,19 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
     Ok(number)
 }
 fn exchange_word_for_number(number_word: &str) -> Option<u64> {
+    if number_word.contains('-') {
+        let words = number_word.split('-');
+        let mut temp_number: u64 = 0;
+        for word in words {
+            temp_number += match_word_to_number(word)?;
+        }
+        Some(temp_number)
+    } else {
+        match_word_to_number(number_word)
+    }
+}
+
+fn match_word_to_number(number_word: &str) -> Option<u64> {
     match number_word {
         "one" => Some(1),
         "two" => Some(2),
