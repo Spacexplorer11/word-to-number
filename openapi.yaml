@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   title: Word to Number API
-  version: 0.1.0
-  description: Converts English words to numbers. Only supports integers up to 999 at the moment (will change very soon).
+  version: 1.0.0
+  description: Converts English words to numbers. Supports numbers up to billions.
 
 servers:
   - url: https://word-to-number.akaalroop.com
@@ -20,10 +20,10 @@ paths:
               properties:
                 word:
                   type: string
-                  example: thirty
+                  example: twenty-five million
                 word-1:
                   type: string
-                  example: ninety-nine
+                  example: seventeen thousand three hundred and ninety-nine
                 word-2:
                   type: string
                   example: one hundred and ninety-three
@@ -37,10 +37,10 @@ paths:
                 properties:
                   number:
                     type: integer
-                    example: 30
+                    example: 25000000
                   number-1:
                     type: integer
-                    example: 99
+                    example: 17399
                   number-2:
                     type: integer
                     example: 193
