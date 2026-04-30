@@ -81,7 +81,7 @@ pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumb
         }
     }
     for num in numbers_to_add {
-        number += num
+        number = number.checked_add(num).ok_or(BadRequest)?;
     }
     Ok(number)
 }

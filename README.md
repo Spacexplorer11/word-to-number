@@ -7,7 +7,7 @@ Check out my Scalar page: https://registry.scalar.com/@akaalroop/apis/word-to-nu
 
 ## What is it?
 This is an API where you send string numbers and receive integers. For example, you can exchange "sixty-seven" for 67.  
-This API supports big numbers! The words we support go up to "billion". It can't understand trillion for example. However, you can chain numbers like "one thousand billion" to get 1,000,000,000, 000!
+This API supports big numbers! The words we support go up to "billion". It can't understand trillion for example. However, you can chain numbers like "one thousand billion" to get 1,000,000,000,000!
 
 ## Usage
 ### The number itself
