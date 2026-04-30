@@ -7,7 +7,7 @@ use crate::word_to_number::WordToNumberError::BadRequest;
 pub(crate) fn change_word_to_number(word_number: &str) -> Result<u64, WordToNumberError> {
     let mut number: u64 = 0;
     let mut word_numbers_mapped = Vec::new();
-    let word_number = word_number.to_lowercase().replace(',', "");
+    let word_number = word_number.to_lowercase();
     let mut word_numbers_mapped_option_possible: Vec<Option<u64>>;
     if word_number.contains(" and ") {
         let parts = word_number.splitn(2, " and ").collect::<Vec<&str>>();

@@ -18,11 +18,11 @@ Hi! This gets a whole section to itself because (at least for now) my API is qui
 - "one hundred forty-two"
 - "one"
 - "two thousand and ninety"
-- "two thousand, five hundred and sixty-three"
+- "two thousand five hundred and sixty-three"
 - "five thousand"
 - "fifty-seven thousand"
 - "sixty-three thousand and five hundred twenty-three"
-- "two million, seven hundred thousand and sixty-four"
+- "two million seven hundred thousand and sixty-four"
 
 #### Invalid examples
 - "sixty seven"
@@ -30,14 +30,16 @@ Hi! This gets a whole section to itself because (at least for now) my API is qui
 - "two thousand and five hundred and sixty-three"
 - "a million"
 - "the million"
+- "two million, five hundred and seventy-five" (commas are banned)
 
 Hopefully the examples show everything, but to clarify:
 #### Requirements:
 - You must have a hyphen ("-") between two-digit numbers.
-- You are allowed to add commas as they are automatically removed by the API during processing. **However, you may not omit spaces**
+- You are not allowed to add commas.
 - You may only have "and" once in your request.
 - You must use English.
 - No other numbers other than integers are allowed.
+- You must use spaces between numbers
 
 ### Request
 You must send a POST request to the server at https://word-to-number.akaalroop.com/.
